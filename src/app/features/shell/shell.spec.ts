@@ -72,6 +72,12 @@ describe('Shell', () => {
     expect(alerts.stop).toHaveBeenCalled();
   });
 
+  it('führt im Menü zur eigenen Statistik', async () => {
+    const items = await openMenu();
+
+    expect(item(items, 'Meine Statistik').getAttribute('href')).toBe('/statistik');
+  });
+
   it('bietet im Menü die Systembenachrichtigungen an, solange sie nicht erlaubt sind', async () => {
     const items = await openMenu();
 

@@ -1,0 +1,84 @@
+@if (data.status() === 'loading') {
+  <mat-progress-bar mode="indeterminate" aria-label="Die Statistik wird geladen" />
+}
+
+@if (data.error()) {
+  <div class="message" role="alert">
+    <p>Die Statistik konnte nicht geladen werden.</p>
+    <button mat-stroked-button type="button" (click)="data.reload()">Erneut versuchen</button>
+  </div>
+} @else if (data.hasValue()) {
+  @let statistics = data.value();
+  @let totals = statistics.totals;
+
+  <div class="heading">
+    <h1>{{ isOwn() ? 'Meine Statistik' : 'Statistik von ' + statistics.player.displayName }}</h1>
+    <button mat-icon-button type="button" aria-label="Aktualisieren" (click)="data.reload()" [disabled]="data.isLoading()">
+      <mat-icon aria-hidden="true">refresh</mat-icon>
+    </button>
+  </div>
+  @if (!isOwn()) {
+    <p class="subtitle">Alle Turniere von {{ statistics.player.displayName }}, auch die laufenden.</p>
+  }
+
+  @if (totals.tournamentCount === 0) {
+    <p class="message">
+      {{ isOwn() ? 'Du hast' : statistics.player.displayName + ' hat' }} noch an keinem Turnier teilgenommen.
+    </p>
+  } @else {
+    <section aria-label="Gesamt">
+      <h2>Gesamt</h2>
+      <dl class="totals">
+        <div>
+          <dt>Turniere</dt>
+          <dd>{{ totals.tournamentCount }}</dd>
+          <dd class="detail">{{ totals.finishedTournamentCount }} beendet</dd>
+        </div>
+        <div>
+          <dt>Spiele</dt>
+          <dd>{{ totals.matchesPlayed }}</dd>
+          <dd class="detail">{{ totals.wins }} S · {{ totals.draws }} U · {{ totals.losses }} N</dd>
+        </div>
+        <div>
+          <dt>Tore</dt>
+          <dd>{{ totals.goalsFor }}:{{ totals.goalsAgainst }}</dd>
+          <dd class="detail">Differenz {{ signed(totals.goalDifference) }}</dd>
+        </div>
+        <div>
+          <dt>Punkte</dt>
+          <dd>{{ totals.points }}</dd>
+        </div>
+        <div>
+          <dt>Titel</dt>
+          <dd>{{ totals.titles }}</dd>
+          <dd class="detail">{{ totals.podiums }} × auf dem Podest</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section aria-label="Turniere">
+      <h2>Turniere</h2>
+      <ul class="tournaments">
+        @for (entry of statistics.tournaments; track entry.tournamentId) {
+          <li>
+            <a class="tournament" [routerLink]="['/turniere', entry.tournamentId]">
+              <span class="title">{{ entry.name }}</span>
+              <span class="date">{{ entry.date | date: 'mediumDate' }}</span>
+              <span class="chips">
+                <span class="chip" [attr.data-status]="entry.tournamentStatus">{{ tournamentStatus[entry.tournamentStatus] }}</span>
+                @if (entry.participantStatus !== 'ACTIVE') {
+                  <span class="chip">{{ participantStatus[entry.participantStatus] }}</span>
+                }
+              </span>
+              <span class="rank">Platz {{ entry.rank }} von {{ entry.participantCount }}</span>
+              <span class="figures">
+                {{ entry.points }} Punkte · {{ entry.matchesPlayed }} Spiele · Tore {{ entry.goalsFor }}:{{ entry.goalsAgainst }}
+                ({{ signed(entry.goalDifference) }})
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+}

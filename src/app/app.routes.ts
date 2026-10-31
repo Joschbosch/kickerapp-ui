@@ -47,6 +47,17 @@ export const routes: Routes = [
           import('./features/tournaments/tournament-detail-page').then((m) => m.TournamentDetailPage),
       },
       {
+        // Ohne Angabe die eigene Statistik
+        path: 'statistik',
+        title: 'Statistik – Kickertool',
+        loadComponent: () => import('./features/statistics/statistics-page').then((m) => m.StatisticsPage),
+      },
+      {
+        path: 'statistik/:id',
+        title: 'Statistik – Kickertool',
+        loadComponent: () => import('./features/statistics/statistics-page').then((m) => m.StatisticsPage),
+      },
+      {
         path: 'admin',
         canActivate: [adminGuard],
         children: [

@@ -15,6 +15,10 @@
       }
     </button>
     <mat-menu #userMenu="matMenu">
+      <a mat-menu-item routerLink="/statistik">
+        <mat-icon aria-hidden="true">bar_chart</mat-icon>
+        <span>Meine Statistik</span>
+      </a>
       @if (alerts.canAskPermission()) {
         <button mat-menu-item type="button" (click)="alerts.enableSystemNotifications()">
           <mat-icon aria-hidden="true">notifications</mat-icon>

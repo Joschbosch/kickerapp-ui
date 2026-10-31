@@ -19,6 +19,9 @@ export type MatchResult = Schemas['Result'];
 export type Team = Schemas['Team'];
 export type Slot = Schemas['Slot'];
 export type RankingEntry = Schemas['RankingEntry'];
+export type PlayerStatistics = Schemas['PlayerStatistics'];
+export type StatisticsTotals = Schemas['StatisticsTotals'];
+export type TournamentStanding = Schemas['TournamentStanding'];
 export type TournamentEvent = Schemas['Event'];
 export type EventTicket = Schemas['EventTicket'];
 

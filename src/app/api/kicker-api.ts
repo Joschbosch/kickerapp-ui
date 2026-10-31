@@ -10,6 +10,7 @@ import {
   ParticipantStatus,
   PlanTournamentRequest,
   Player,
+  PlayerStatistics,
   RankingEntry,
   ResultRequest,
   Round,
@@ -29,6 +30,11 @@ export class KickerApi {
 
   me(): Observable<Me> {
     return this.http.get<Me>(this.config.url('/api/me'));
+  }
+
+  /** Die Statistik eines Spielers über alle seine Turniere. Jeder darf jede sehen, `me` ist der Angemeldete. */
+  statistics(playerId: string): Observable<PlayerStatistics> {
+    return this.http.get<PlayerStatistics>(this.config.url(`/api/players/${playerId}/statistics`));
   }
 
   tournaments(): Observable<TournamentSummary[]> {

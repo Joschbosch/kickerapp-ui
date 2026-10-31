@@ -86,6 +86,15 @@ describe('TournamentDetailPage', () => {
     expect(text()).toContain('Ben Beispiel');
   });
 
+  it('verlinkt jeden Spieler der Rangliste mit seiner Statistik', async () => {
+    await load(tournament({ participants: [participant(BEN), participant(CLARA)] }), [entry(1, BEN, 3), entry(2, CLARA, 0)]);
+
+    const links = Array.from(element().querySelectorAll<HTMLAnchorElement>('a.player-link'));
+
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([`/statistik/${BEN.id}`, `/statistik/${CLARA.id}`]);
+    expect(links[0].textContent).toBe('Ben Beispiel');
+  });
+
   it('meldet an und lädt danach den neuen Stand', async () => {
     await load(tournament());
 

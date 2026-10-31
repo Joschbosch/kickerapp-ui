@@ -44,6 +44,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/players/{playerId}/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Statistik eines Spielers
+         * @description Die Statistik über alle laufenden und beendeten Turniere des Spielers: Summen (Turniere, Spiele, Siege, Tore, Punkte, Titel) und der Stand in jedem Turnier. Jeder angemeldete Spieler darf die Statistik jedes Spielers sehen. Geplante Turniere zählen nicht, Ergebnisse nur bestätigt. Für die eigene Statistik kann `me` als ID stehen.
+         */
+        get: operations["statistics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/tournaments": {
         parameters: {
             query?: never;
@@ -606,6 +626,13 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
+        /** @description Die Statistik eines Spielers über alle seine laufenden und beendeten Turniere */
+        PlayerStatistics: {
+            player: components["schemas"]["Player"];
+            totals: components["schemas"]["StatisticsTotals"];
+            /** @description Der Stand in jedem Turnier, neueste zuerst */
+            tournaments: components["schemas"]["TournamentStanding"][];
+        };
         RankingEntry: {
             /** Format: int32 */
             draws: number;
@@ -683,6 +710,42 @@ export interface components {
             /** @enum {string} */
             type: "PLAYER" | "DUMMY";
         };
+        /** @description Summen über alle Turniere des Spielers. Es zählen nur bestätigte Ergebnisse. */
+        StatisticsTotals: {
+            /** Format: int32 */
+            draws: number;
+            /** Format: int32 */
+            finishedTournamentCount: number;
+            /** Format: int32 */
+            goalDifference: number;
+            /** Format: int32 */
+            goalsAgainst: number;
+            /** Format: int32 */
+            goalsFor: number;
+            /** Format: int32 */
+            losses: number;
+            /** Format: int32 */
+            matchesPlayed: number;
+            /**
+             * Format: int32
+             * @description Beendete Turniere mit Rang 1 bis 3 (auch geteilt), in denen der Spieler gespielt hat
+             */
+            podiums: number;
+            /** Format: int32 */
+            points: number;
+            /**
+             * Format: int32
+             * @description Beendete Turniere mit Rang 1 (auch geteilt), in denen der Spieler gespielt hat
+             */
+            titles: number;
+            /**
+             * Format: int32
+             * @description Laufende und beendete Turniere, geplante zählen nicht
+             */
+            tournamentCount: number;
+            /** Format: int32 */
+            wins: number;
+        };
         Team: {
             members: components["schemas"]["Slot"][];
         };
@@ -700,6 +763,44 @@ export interface components {
             roundCount: number;
             /** @enum {string} */
             status: "PLANNED" | "RUNNING" | "FINISHED";
+        };
+        /** @description Der Stand eines Spielers in einem Turnier: im laufenden Turnier der aktuelle, im beendeten der Endstand */
+        TournamentStanding: {
+            /** Format: date */
+            date: string;
+            /** Format: int32 */
+            draws: number;
+            /** Format: int32 */
+            goalDifference: number;
+            /** Format: int32 */
+            goalsAgainst: number;
+            /** Format: int32 */
+            goalsFor: number;
+            /** Format: int32 */
+            losses: number;
+            /** Format: int32 */
+            matchesPlayed: number;
+            name: string;
+            /**
+             * Format: int32
+             * @description Zahl der Teilnehmer, also der Plätze in der Rangliste
+             */
+            participantCount: number;
+            /**
+             * @description Ob der Spieler noch dabei ist, pausiert oder ausgeschieden ist
+             * @enum {string}
+             */
+            participantStatus: "ACTIVE" | "PAUSED" | "WITHDRAWN";
+            /** Format: int32 */
+            points: number;
+            /** Format: int32 */
+            rank: number;
+            /** Format: uuid */
+            tournamentId: string;
+            /** @enum {string} */
+            tournamentStatus: "PLANNED" | "RUNNING" | "FINISHED";
+            /** Format: int32 */
+            wins: number;
         };
         TournamentSummary: {
             /** Format: date */
@@ -863,6 +964,124 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Player"][];
+                };
+            };
+            /** @description Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** @example Runde 1 ist noch nicht abgeschlossen */
+                        detail?: string;
+                        instance?: string;
+                        /**
+                         * Format: int32
+                         * @example 409
+                         */
+                        status?: number;
+                        /** @example Conflict */
+                        title?: string;
+                        /** @example about:blank */
+                        type?: string;
+                    };
+                };
+            };
+            /** @description Kein oder ungültiges Token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** @example Runde 1 ist noch nicht abgeschlossen */
+                        detail?: string;
+                        instance?: string;
+                        /**
+                         * Format: int32
+                         * @example 409
+                         */
+                        status?: number;
+                        /** @example Conflict */
+                        title?: string;
+                        /** @example about:blank */
+                        type?: string;
+                    };
+                };
+            };
+            /** @description Nicht gefunden */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** @example Runde 1 ist noch nicht abgeschlossen */
+                        detail?: string;
+                        instance?: string;
+                        /**
+                         * Format: int32
+                         * @example 409
+                         */
+                        status?: number;
+                        /** @example Conflict */
+                        title?: string;
+                        /** @example about:blank */
+                        type?: string;
+                    };
+                };
+            };
+            /** @description Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": {
+                        /** @example Runde 1 ist noch nicht abgeschlossen */
+                        detail?: string;
+                        instance?: string;
+                        /**
+                         * Format: int32
+                         * @example 409
+                         */
+                        status?: number;
+                        /** @example Conflict */
+                        title?: string;
+                        /** @example about:blank */
+                        type?: string;
+                    };
+                };
+            };
+        };
+    };
+    statistics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Spieler-ID oder `me` für den Aufrufer */
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PlayerStatistics"];
                 };
             };
             /** @description Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit */

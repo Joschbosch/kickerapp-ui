@@ -129,7 +129,7 @@
           <ng-container matColumnDef="player">
             <th mat-header-cell *matHeaderCellDef>Spieler</th>
             <td mat-cell *matCellDef="let entry">
-              {{ entry.player.displayName }}
+              <a class="player-link" [routerLink]="['/statistik', entry.player.id]">{{ entry.player.displayName }}</a>
               @if (isMe(entry)) {
                 <span class="status me-tag">du</span>
               }

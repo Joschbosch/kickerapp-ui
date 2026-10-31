@@ -1,4 +1,15 @@
-import { Match, Participant, Player, RankingEntry, Round, Slot, Tournament } from '../api/models';
+import {
+  Match,
+  Participant,
+  Player,
+  PlayerStatistics,
+  RankingEntry,
+  Round,
+  Slot,
+  StatisticsTotals,
+  Tournament,
+  TournamentStanding,
+} from '../api/models';
 
 /** Kleine Beispieldaten für die Tests. */
 export const ANNA: Player = { id: 'p-anna', displayName: 'Anna Beispiel' };
@@ -44,6 +55,51 @@ export function rankingEntry(rank: number, player: Player, points: number, statu
     goalsFor: 10,
     goalsAgainst: 5,
     goalDifference: 5,
+  };
+}
+
+export function standing(overrides: Partial<TournamentStanding> = {}): TournamentStanding {
+  return {
+    tournamentId: 't1',
+    name: 'Demo-Turnier',
+    date: '2026-10-31',
+    tournamentStatus: 'FINISHED',
+    participantStatus: 'ACTIVE',
+    rank: 1,
+    participantCount: 8,
+    matchesPlayed: 4,
+    wins: 3,
+    draws: 0,
+    losses: 1,
+    goalsFor: 38,
+    goalsAgainst: 24,
+    goalDifference: 14,
+    points: 9,
+    ...overrides,
+  };
+}
+
+/** Eine Statistik, deren Summen aus den Turnieren folgen sollten; für Tests mit `totals` überschreiben. */
+export function statistics(player: Player, tournaments: TournamentStanding[], totals: Partial<StatisticsTotals> = {}): PlayerStatistics {
+  const sum = (pick: (entry: TournamentStanding) => number) => tournaments.reduce((all, entry) => all + pick(entry), 0);
+  return {
+    player,
+    tournaments,
+    totals: {
+      tournamentCount: tournaments.length,
+      finishedTournamentCount: tournaments.filter((entry) => entry.tournamentStatus === 'FINISHED').length,
+      titles: 0,
+      podiums: 0,
+      matchesPlayed: sum((entry) => entry.matchesPlayed),
+      wins: sum((entry) => entry.wins),
+      draws: sum((entry) => entry.draws),
+      losses: sum((entry) => entry.losses),
+      goalsFor: sum((entry) => entry.goalsFor),
+      goalsAgainst: sum((entry) => entry.goalsAgainst),
+      goalDifference: sum((entry) => entry.goalDifference),
+      points: sum((entry) => entry.points),
+      ...totals,
+    },
   };
 }
 

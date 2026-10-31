@@ -294,6 +294,26 @@
         "required" : [ "displayName", "id" ],
         "type" : "object"
       },
+      "PlayerStatistics" : {
+        "description" : "Die Statistik eines Spielers über alle seine laufenden und beendeten Turniere",
+        "properties" : {
+          "player" : {
+            "$ref" : "#/components/schemas/Player"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/StatisticsTotals"
+          },
+          "tournaments" : {
+            "description" : "Der Stand in jedem Turnier, neueste zuerst",
+            "items" : {
+              "$ref" : "#/components/schemas/TournamentStanding"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "player", "totals", "tournaments" ],
+        "type" : "object"
+      },
       "RankingEntry" : {
         "properties" : {
           "draws" : {
@@ -455,6 +475,64 @@
         "required" : [ "player", "standIn", "type" ],
         "type" : "object"
       },
+      "StatisticsTotals" : {
+        "description" : "Summen über alle Turniere des Spielers. Es zählen nur bestätigte Ergebnisse.",
+        "properties" : {
+          "draws" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "finishedTournamentCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "goalDifference" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "goalsAgainst" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "goalsFor" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "losses" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "matchesPlayed" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "podiums" : {
+            "description" : "Beendete Turniere mit Rang 1 bis 3 (auch geteilt), in denen der Spieler gespielt hat",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "points" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "titles" : {
+            "description" : "Beendete Turniere mit Rang 1 (auch geteilt), in denen der Spieler gespielt hat",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "tournamentCount" : {
+            "description" : "Laufende und beendete Turniere, geplante zählen nicht",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "wins" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "draws", "finishedTournamentCount", "goalDifference", "goalsAgainst", "goalsFor", "losses", "matchesPlayed", "podiums", "points", "titles", "tournamentCount", "wins" ],
+        "type" : "object"
+      },
       "Team" : {
         "properties" : {
           "members" : {
@@ -507,6 +585,74 @@
           }
         },
         "required" : [ "config", "currentRound", "date", "id", "name", "participants", "roundCount", "status" ],
+        "type" : "object"
+      },
+      "TournamentStanding" : {
+        "description" : "Der Stand eines Spielers in einem Turnier: im laufenden Turnier der aktuelle, im beendeten der Endstand",
+        "properties" : {
+          "date" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "draws" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "goalDifference" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "goalsAgainst" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "goalsFor" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "losses" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "matchesPlayed" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "participantCount" : {
+            "description" : "Zahl der Teilnehmer, also der Plätze in der Rangliste",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "participantStatus" : {
+            "description" : "Ob der Spieler noch dabei ist, pausiert oder ausgeschieden ist",
+            "enum" : [ "ACTIVE", "PAUSED", "WITHDRAWN" ],
+            "type" : "string"
+          },
+          "points" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "rank" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "tournamentId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "tournamentStatus" : {
+            "enum" : [ "PLANNED", "RUNNING", "FINISHED" ],
+            "type" : "string"
+          },
+          "wins" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "date", "draws", "goalDifference", "goalsAgainst", "goalsFor", "losses", "matchesPlayed", "name", "participantCount", "participantStatus", "points", "rank", "tournamentId", "tournamentStatus", "wins" ],
         "type" : "object"
       },
       "TournamentSummary" : {
@@ -878,6 +1024,166 @@
           }
         },
         "summary" : "Alle bekannten Spieler",
+        "tags" : [ "Spieler" ]
+      }
+    },
+    "/api/players/{playerId}/statistics" : {
+      "get" : {
+        "description" : "Die Statistik über alle laufenden und beendeten Turniere des Spielers: Summen (Turniere, Spiele, Siege, Tore, Punkte, Titel) und der Stand in jedem Turnier. Jeder angemeldete Spieler darf die Statistik jedes Spielers sehen. Geplante Turniere zählen nicht, Ergebnisse nur bestätigt. Für die eigene Statistik kann `me` als ID stehen.",
+        "operationId" : "statistics",
+        "parameters" : [ {
+          "description" : "Spieler-ID oder `me` für den Aufrufer",
+          "in" : "path",
+          "name" : "playerId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlayerStatistics"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Statistik eines Spielers",
         "tags" : [ "Spieler" ]
       }
     },

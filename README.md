@@ -8,6 +8,11 @@ eines Turniers: zum Turnier anmelden, pausieren, ausscheiden, der eigene Stand (
 Partner und Gegnern, Ergebnis eintragen (mit Prüfung gegen das Tor-Limit), bestätigen oder ablehnen, Spielzeit-Zähler am Tisch,
 Platz in der Warteschlange, alle Tische der Runde und die Rangliste.
 
+**Statistik** (`/statistik`, im Benutzermenü „Meine Statistik“): Summen über alle laufenden und beendeten Turniere (Turniere,
+Spiele, Siege/Unentschieden/Niederlagen, Tore, Punkte, Titel, Podestplätze) und der Stand in jedem Turnier mit Link dorthin. Jeder
+darf die Statistik jedes Spielers sehen: In der Rangliste führt der Name zu `/statistik/:id`. Es gibt keine Gesamtrangliste über
+alle Spieler. Die Zahlen rechnet das Backend (`GET /api/players/{id}/statistics`), die UI zeigt sie nur an.
+
 **„Du bist dran“:** Sobald ein Match des Spielers einem Tisch zugewiesen wird (neue Runde oder die nächste Welle, auch als
 Einspringer), erscheint auf jeder Seite der App ein Hinweis mit Tisch, Partner und Gegnern, dazu Vibration, ein Signalton und, wenn
 die Seite gerade nicht sichtbar ist, eine Systembenachrichtigung. Im Benutzermenü lässt sich der Ton ausschalten und die
