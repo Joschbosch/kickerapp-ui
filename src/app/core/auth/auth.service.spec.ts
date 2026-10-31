@@ -186,6 +186,36 @@ describe('AuthService mit OIDC-Provider', () => {
     expect(fake.session.signIn).toHaveBeenCalledWith('/turniere/42');
   });
 
+  describe('wenn die Weiterleitung nicht klappt', () => {
+    const original = Object.getOwnPropertyDescriptor(crypto, 'subtle');
+
+    afterEach(() => {
+      if (original) {
+        Object.defineProperty(crypto, 'subtle', original);
+      } else {
+        Reflect.deleteProperty(crypto, 'subtle');
+      }
+    });
+
+    it('sagt bei fehlendem sicherem Kontext, dass HTTPS nötig ist, statt „nicht erreichbar“', async () => {
+      const auth = await create();
+      Object.defineProperty(crypto, 'subtle', { value: undefined, configurable: true });
+      fake.session.signIn.mockRejectedValue(new Error('Crypto.subtle is available only in secure contexts (HTTPS).'));
+
+      await expect(auth.startLogin('/turniere')).rejects.toThrow(
+        new LoginError('Die Anmeldung braucht eine sichere Verbindung (HTTPS oder localhost).'),
+      );
+    });
+
+    it('sagt sonst, dass der Anmeldeserver nicht erreichbar ist', async () => {
+      const auth = await create();
+      Object.defineProperty(crypto, 'subtle', { value: {}, configurable: true });
+      fake.session.signIn.mockRejectedValue(new Error('Failed to fetch'));
+
+      await expect(auth.startLogin('/turniere')).rejects.toThrow(new LoginError('Der Anmeldeserver ist nicht erreichbar.'));
+    });
+  });
+
   it('schließt die Anmeldung nach der Rückkehr ab: Token, Profil, Zielseite', async () => {
     const auth = await create();
     fake.session.complete.mockResolvedValue({ accessToken: 'neu', returnUrl: '/turniere/42' });

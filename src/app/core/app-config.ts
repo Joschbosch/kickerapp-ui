@@ -6,6 +6,11 @@ export interface OidcConfig {
   authority: string;
   /** Öffentlicher Client ohne Secret. */
   clientId: string;
+  /**
+   * Nur zum Testen im lokalen Netz über HTTP (z. B. am Handy): Ersetzt das im unsicheren Kontext fehlende SHA-256 des Browsers
+   * durch eines in JavaScript. Im Betrieb weglassen, dort gehört HTTPS hin.
+   */
+  allowInsecureContext?: boolean;
 }
 
 /**

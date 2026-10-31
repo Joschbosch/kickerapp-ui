@@ -164,4 +164,12 @@ describe('LoginPage mit OIDC-Provider', () => {
     expect(page.querySelector('[role=alert]')?.textContent).toContain('Der Anmeldeserver ist nicht erreichbar.');
     expect(page.querySelector<HTMLButtonElement>('button')!.disabled).toBe(false);
   });
+
+  it('zeigt die genaue Meldung des Dienstes, etwa dass HTTPS nötig ist', async () => {
+    startLogin.mockRejectedValue(new LoginError('Die Anmeldung braucht eine sichere Verbindung (HTTPS oder localhost).'));
+
+    const { page } = await open();
+
+    expect(page.querySelector('[role=alert]')?.textContent).toContain('braucht eine sichere Verbindung');
+  });
 });

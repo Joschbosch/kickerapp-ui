@@ -2,6 +2,7 @@ import { InjectionToken, inject } from '@angular/core';
 import { ErrorResponse, UserManager, UserManagerSettings, WebStorageStateStore } from 'oidc-client-ts';
 
 import { AppConfig, AppConfigService } from '../app-config';
+import { installSha256Fallback } from './insecure-crypto';
 
 /**
  * Die Anmeldung am OIDC-Provider, so schmal wie `AuthService` sie braucht. Die Bibliothek bleibt hinter dieser
@@ -40,6 +41,9 @@ export class UserManagerSession implements OidcSession {
     config: AppConfig,
     createManager: (settings: UserManagerSettings) => UserManager = (settings) => new UserManager(settings),
   ) {
+    if (config.oidc.allowInsecureContext) {
+      installSha256Fallback();
+    }
     this.manager = createManager({
       authority: config.oidc.authority,
       client_id: config.oidc.clientId,

@@ -71,6 +71,40 @@ describe('UserManagerSession', () => {
     expect(settings.post_logout_redirect_uri).toMatch(/\/abgemeldet$/);
   });
 
+  describe('Notbehelf für HTTP im lokalen Netz', () => {
+    const original = Object.getOwnPropertyDescriptor(crypto, 'subtle');
+
+    beforeEach(() => {
+      Object.defineProperty(crypto, 'subtle', { value: undefined, configurable: true });
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      if (original) {
+        Object.defineProperty(crypto, 'subtle', original);
+      } else {
+        Reflect.deleteProperty(crypto, 'subtle');
+      }
+    });
+
+    const create = (config: AppConfig) => new UserManagerSession(config, () => fake.manager as unknown as UserManager);
+
+    it('bleibt standardmäßig aus', () => {
+      create(CONFIG);
+
+      expect(crypto.subtle).toBeUndefined();
+    });
+
+    it('baut mit „allowInsecureContext“ ein SHA-256 ein', async () => {
+      create({ ...CONFIG, oidc: { ...CONFIG.oidc, allowInsecureContext: true } });
+
+      const hashed = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('abc'));
+
+      expect(new Uint8Array(hashed)[0]).toBe(0xba);
+    });
+  });
+
   describe('restore', () => {
     it('liefert das Token einer gültigen gespeicherten Sitzung', async () => {
       fake.manager.getUser.mockResolvedValue(user());

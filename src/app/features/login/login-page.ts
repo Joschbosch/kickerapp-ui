@@ -92,8 +92,8 @@ export class LoginPage implements OnInit {
     try {
       await this.auth.startLogin(safeTarget(this.weiter()));
       // Der Browser wechselt jetzt zum Provider, `busy` bleibt bis dahin gesetzt
-    } catch {
-      this.error.set('Der Anmeldeserver ist nicht erreichbar.');
+    } catch (error) {
+      this.error.set(error instanceof LoginError ? error.message : 'Der Anmeldeserver ist nicht erreichbar.');
       this.busy.set(false);
     }
   }

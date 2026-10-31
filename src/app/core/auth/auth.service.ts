@@ -85,7 +85,16 @@ export class AuthService {
     if (this.session === null) {
       throw new LoginError('Diese Anmeldeart wird nicht unterstützt.');
     }
-    await this.session.signIn(returnUrl);
+    try {
+      await this.session.signIn(returnUrl);
+    } catch {
+      // Ohne crypto.subtle (kein HTTPS, nicht localhost) kann der Code-Flow nicht beginnen: Das ist kein Netzproblem
+      throw new LoginError(
+        typeof crypto !== 'undefined' && crypto.subtle
+          ? 'Der Anmeldeserver ist nicht erreichbar.'
+          : 'Die Anmeldung braucht eine sichere Verbindung (HTTPS oder localhost).',
+      );
+    }
   }
 
   /** Wertet die Rückkehr vom OIDC-Provider aus, lädt das Profil und liefert die Seite, zu der es weitergeht. */
