@@ -1,0 +1,8 @@
+{{- /* Prüft die Pflichtangaben, bevor ein Teil-Chart mit unklarer Meldung scheitert. Erzeugt keine Ressource. */ -}}
+{{- $_ := required "global.host ist nötig: der Host der UI und der API, z. B. turnier.example.com" .Values.global.host }}
+{{- if (index .Values "kickertool").keycloak.enabled }}
+{{- $_ := required "global.authHost ist nötig: der Host von Keycloak, z. B. auth.example.com" .Values.global.authHost }}
+{{- end }}
+{{- if eq .Values.global.host .Values.global.authHost }}
+{{- fail "global.host und global.authHost müssen verschieden sein: Keycloak läuft an einem eigenen Host" }}
+{{- end }}

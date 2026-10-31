@@ -107,6 +107,17 @@ Diese Datei gilt für alle Assistenten (Codex, Claude Code, ...). Eigenheiten ei
   helm/kickertool-ui/values-local.yaml`, in einem Test-Namespace installieren, `config.json` und eine App-Adresse (`/turniere/42`) abrufen
   und alles wieder entfernen.
 
+## Gesamt-Chart (`helm/kickertool-stack`)
+- Bindet das Backend-Chart (`../kickerapp/helm/kickertool`, anderes Repo, per `file://`-Pfad) und `helm/kickertool-ui` als Unter-Charts
+  ein. `helm dependency update helm/kickertool-stack` vor jedem Lint und Install, `charts/` und `Chart.lock` sind nicht eingecheckt.
+- Alle Adressen kommen aus `global.host`, `global.authHost`, `global.tls`, `global.tlsSecretName`, `global.ingressClassName` und `global.realm`.
+  **Beide** Unter-Charts lesen diese Werte (Helfer `scheme`, `ingressHost`, ... in ihren `_helpers.tpl`), eigene Werte wie `config.apiBaseUrl` haben
+  Vorrang. Neue Adresswerte in einem der Charts also auch dort über `global` ableiten, sonst fallen sie im Gesamtpaket auseinander.
+- Das Backend-Chart bekommt beim Gesamtpaket nur `/api`, `/swagger-ui`, `/swagger-ui.html`, `/v3/api-docs` (`ingress.paths`), die UI den Rest.
+  Änderungen am Backend-Chart gehören ins Backend-Repo und müssen im Einzelbetrieb dasselbe rendern wie vorher (`helm template` alt gegen neu).
+- Prüfen: `helm lint helm/kickertool-stack -f helm/kickertool-stack/values-local.yaml`, in einem Test-Namespace installieren
+  (Images `kickertool:0.1.0-SNAPSHOT` und `kickertool-ui:0.1.0` vorher bauen), alles wieder entfernen, auch die PVCs (Namespace löschen).
+
 ## Prüfen vor dem Abschluss
 - `npm test` und `npm run build` (Typprüfung und Vorlagen werden beim Bauen geprüft).
 - Gegen das lokale Backend durchspielen: Als `admin` das Demo-Turnier starten und eine Runde auslosen, als Spieler ein

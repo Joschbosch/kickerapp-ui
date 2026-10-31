@@ -1,0 +1,14 @@
+apiVersion: v2
+name: kickertool-stack
+description: "Kickertool komplett: UI, REST-API, PostgreSQL und Keycloak mit einem Befehl"
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+dependencies:
+  # Das Backend-Chart liegt im Repo kickerapp, das neben diesem Repo ausgecheckt sein muss
+  - name: kickertool
+    version: 0.1.0
+    repository: file://../../../kickerapp/helm/kickertool
+  - name: kickertool-ui
+    version: 0.1.0
+    repository: file://../kickertool-ui

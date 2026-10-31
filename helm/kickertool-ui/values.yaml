@@ -5,6 +5,16 @@
 nameOverride: ""
 fullnameOverride: ""
 
+# Gemeinsame Werte, die das Gesamt-Chart `kickertool-stack` für alle Teile setzt. Daraus entstehen config.apiBaseUrl,
+# config.oidc.authority und ingress.host, soweit sie nicht selbst gesetzt sind. Beim Einzelbetrieb leer lassen.
+#   global.host:          Host der UI und der API, z. B. turnier.example.com
+#   global.authHost:      Host von Keycloak, z. B. auth.example.com
+#   global.realm:         Realm in Keycloak (Standard kickertool)
+#   global.tls:           HTTPS (Adressen mit https://, TLS-Abschnitt am Ingress)
+#   global.tlsSecretName: Secret mit dem Zertifikat, leer = Standardzertifikat des Ingress
+#   global.ingressClassName: Klasse des Ingress (ersetzt nur ein leeres ingress.className)
+global: {}
+
 image:
   repository: kickertool-ui
   # leer = appVersion aus Chart.yaml

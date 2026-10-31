@@ -1,0 +1,54 @@
+# Gesamt-Chart: UI, REST-API, PostgreSQL und Keycloak. Von außen gibt es zwei Adressen:
+#   global.host      UI unter /, API unter /api (und Swagger UI), also ohne CORS
+#   global.authHost  Keycloak
+# Beide Hosts müssen auf den Ingress des Clusters zeigen. Alle Adressen in der UI, im Backend und in Keycloak
+# (Aussteller, Weiterleitungen, Web-Origin) werden daraus abgeleitet.
+#
+#   helm dependency update helm/kickertool-stack
+#   helm install kicker helm/kickertool-stack --set global.host=turnier.example.com --set global.authHost=auth.example.com
+#
+# Einstellungen der Teile stehen unter `kickertool:` (Backend, PostgreSQL, Keycloak) und `kickertool-ui:` (UI). Alle
+# Möglichkeiten in values.yaml der jeweiligen Charts (kickerapp/helm/kickertool, helm/kickertool-ui).
+
+global:
+  # Host der UI und der API, z. B. turnier.example.com (Pflicht)
+  host: ""
+  # Host von Keycloak, z. B. auth.example.com (Pflicht, solange Keycloak aus diesem Chart kommt)
+  authHost: ""
+  # Realm in Keycloak
+  realm: kickertool
+  # HTTPS: Adressen mit https://, TLS-Abschnitt am Ingress. Das Zertifikat kommt aus dem Secret `tlsSecretName`
+  # (leer = Standardzertifikat des Ingress, z. B. mit cert-manager über Annotationen).
+  tls: false
+  tlsSecretName: ""
+  # Klasse des Ingress (z. B. nginx oder traefik), leer = Standardklasse des Clusters
+  ingressClassName: ""
+
+# ---- Backend, PostgreSQL, Keycloak (Chart kickertool aus dem Backend-Repo) ----
+kickertool:
+  ingress:
+    enabled: true
+    # Nur die API, damit die UI am selben Host die übrigen Pfade bekommt. Für Server-Sent Events hinter nginx:
+    # annotations: {nginx.ingress.kubernetes.io/proxy-buffering: "off", nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"}
+    annotations: {}
+    paths:
+      - /api
+      - /swagger-ui
+      - /swagger-ui.html
+      - /v3/api-docs
+  keycloak:
+    # Die Weiterleitungen und Web-Origins der UI ergeben sich aus global.host, eigene können dazukommen.
+    redirectUris: []
+    webOrigins: []
+    # Hinter dem Ingress: Adresse und Protokoll aus den X-Forwarded-Headern. Ohne HTTPS (nur Tests) `sslRequired: none`.
+    proxyHeaders: xforwarded
+    sslRequired: external
+  app:
+    # Swagger UI und OpenAPI-Beschreibung. In Produktion besser abschalten.
+    openapi: true
+
+# ---- UI (Chart kickertool-ui) ----
+kickertool-ui:
+  ingress:
+    enabled: true
+    annotations: {}

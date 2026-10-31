@@ -42,3 +42,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Helm: heruntergeladene Unter-Charts und Sperrdatei des Gesamt-Charts
+/helm/kickertool-stack/charts/
+/helm/kickertool-stack/Chart.lock

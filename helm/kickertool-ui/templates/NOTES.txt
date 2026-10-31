@@ -1,7 +1,7 @@
 Kickertool-UI {{ .Chart.AppVersion }} wurde als "{{ .Release.Name }}" in "{{ .Release.Namespace }}" installiert.
 {{- if .Values.ingress.enabled }}
 
-Erreichbar über den Ingress: http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }}
+Erreichbar über den Ingress: http{{ if include "kickertool-ui.ingressTls" . }}s{{ end }}://{{ include "kickertool-ui.ingressHost" . }}
 {{- else }}
 
 Ohne Ingress, lokal per port-forward:
@@ -10,9 +10,9 @@ Dann: http://localhost:4200
 {{- end }}
 
 Die UI ruft im Browser auf:
-  API:       {{ .Values.config.apiBaseUrl }}
+  API:       {{ include "kickertool-ui.apiBaseUrl" . }}
 {{- if eq .Values.config.authMode "oidc" }}
-  Anmeldung: {{ .Values.config.oidc.authority }}
+  Anmeldung: {{ include "kickertool-ui.authority" . }}
 {{- end }}
 
 Damit die Anmeldung klappt, muss das Backend (Chart `kickertool`) diese UI zulassen:

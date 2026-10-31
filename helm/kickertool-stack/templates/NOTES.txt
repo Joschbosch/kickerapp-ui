@@ -1,0 +1,29 @@
+{{- $scheme := ternary "https" "http" (default false .Values.global.tls) -}}
+{{- $backend := ternary .Release.Name (printf "%s-kickertool" .Release.Name) (contains "kickertool" .Release.Name) -}}
+Kickertool wurde als "{{ .Release.Name }}" in "{{ .Release.Namespace }}" installiert (UI, API, PostgreSQL, Keycloak).
+
+Adressen (beide Hosts müssen auf den Ingress des Clusters zeigen):
+  App:        {{ $scheme }}://{{ .Values.global.host }}
+  Swagger UI: {{ $scheme }}://{{ .Values.global.host }}/swagger-ui.html
+  Keycloak:   {{ $scheme }}://{{ .Values.global.authHost }}
+
+Es kann ein paar Minuten dauern, bis Keycloak und die API bereit sind (kubectl -n {{ .Release.Namespace }} get pods).
+
+Admin von Keycloak ({{ (index .Values "kickertool").keycloak.adminUser }}), Passwort:
+  kubectl -n {{ .Release.Namespace }} get secret {{ $backend }}-keycloak -o jsonpath='{.data.admin-password}' | base64 -d
+
+Turnierleiter: In Keycloak (Realm {{ .Values.global.realm }}) einem Benutzer die Realm-Rolle "{{ (index .Values "kickertool").app.adminRole }}" geben.
+Spieler registrieren sich selbst über die Anmeldeseite{{ if not (index .Values "kickertool").keycloak.registrationAllowed }} (ist abgeschaltet){{ end }}.
+{{- if (index .Values "kickertool").keycloak.demoUsers }}
+
+ACHTUNG: keycloak.demoUsers=true legt die Benutzer admin, anna und ben mit dem Passwort = Benutzername an.
+Nur für lokale Tests, nie in einer echten Umgebung!
+{{- end }}
+{{- if not .Values.global.tls }}
+
+HINWEIS: Ohne HTTPS (global.tls=false) funktionieren Anmeldung und Benachrichtigungen nur über localhost und *.localhost
+zuverlässig: Browser erlauben die dafür nötigen Funktionen nur in sicheren Kontexten. Für den Betrieb global.tls=true setzen.
+{{- end }}
+
+Hinweis zu Upgrades: Der Realm von Keycloak wird nur beim ersten Start importiert. Änderungen an Weiterleitungen, Rollen oder
+Benutzern danach in der Keycloak-Konsole machen (oder die Release samt Datenbank neu anlegen).

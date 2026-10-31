@@ -148,6 +148,33 @@ kubectl port-forward svc/ui-kickertool-ui 4200:8080     # dann http://localhost:
   `config.json` und die Service-Worker-Dateien mit `no-cache` und Dateien mit Hash im Namen ein Jahr lang. Eine Content-Security-Policy
   gibt es nicht, sie hinge von den Adressen der API und von Keycloak ab (am besten am Ingress setzen).
 
+## Gesamtpaket mit einem Befehl (UI, API, PostgreSQL, Keycloak)
+
+Das Chart `helm/kickertool-stack` fasst die Charts der UI und des Backends (Repo `kickerapp`, muss **neben** diesem Repo
+ausgecheckt sein) zusammen. Von außen gibt es zwei Adressen: einen Host für UI und API (`/` ist die UI, `/api` die API, also ohne
+CORS) und einen für Keycloak. Beide müssen auf den Ingress des Clusters zeigen. Alles andere (Adresse der API in der UI, Aussteller des
+Tokens, Weiterleitungen und Web-Origin in Keycloak, Ingress-Hosts, TLS) wird daraus abgeleitet.
+
+```bash
+helm dependency update helm/kickertool-stack
+helm install kicker helm/kickertool-stack \
+  --set global.host=turnier.example.com --set global.authHost=auth.example.com \
+  --set global.tls=true --set global.ingressClassName=nginx
+```
+
+- Die Images `kickertool` (Backend, `docker build` im Backend-Repo) und `kickertool-ui` (hier) müssen der Cluster erreichen: lokal
+  ein `docker build`, sonst in eine Registry schieben und `kickertool.image.repository`, `kickertool-ui.image.repository` setzen.
+- Lokal in Rancher Desktop (Traefik): `-f helm/kickertool-stack/values-local.yaml`, dann http://kicker.localhost. Das legt die Testnutzer
+  `admin`, `anna`, `ben` (Passwort = Benutzername) an, nur für Tests.
+- Einstellungen der Teile stehen unter `kickertool:` (Backend, PostgreSQL, Keycloak) und `kickertool-ui:` (UI), z. B. `kickertool.postgresql.storage.size`
+  oder `kickertool.keycloak.registrationAllowed=false`. Die vollständige Liste steht in den `values.yaml` der Teil-Charts.
+- Ohne HTTPS gehen die Anmeldung (PKCE braucht `crypto.subtle`) und Systembenachrichtigungen nur über `localhost` und `*.localhost`.
+  Im Betrieb `global.tls=true` setzen, das Zertifikat kommt aus `global.tlsSecretName` oder vom Ingress (z. B. cert-manager).
+- Keycloak importiert den Realm nur beim ersten Start. Spätere Änderungen an Weiterleitungen oder Rollen macht man in der Keycloak-Konsole.
+- Für die Live-Updates (Server-Sent Events) hinter nginx die Annotationen `proxy-buffering: "off"` und ein langes `proxy-read-timeout`
+  setzen (`kickertool.ingress.annotations`), das Backend bleibt bei einer Instanz.
+- Die Unter-Charts (`helm/kickertool-stack/charts/`) und `Chart.lock` entstehen mit `helm dependency update` und sind nicht eingecheckt.
+
 ## Weiterarbeiten
 
 Regeln für Entwickler und Assistenten stehen in [AGENTS.md](AGENTS.md).

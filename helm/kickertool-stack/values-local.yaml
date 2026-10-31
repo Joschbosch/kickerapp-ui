@@ -1,0 +1,17 @@
+# Für einen lokalen Cluster (Rancher Desktop mit Traefik): alles unter *.localhost, Browser lösen das auf 127.0.0.1 auf.
+#   helm dependency update helm/kickertool-stack
+#   helm install kicker helm/kickertool-stack -f helm/kickertool-stack/values-local.yaml
+# Dann http://kicker.localhost, Keycloak unter http://auth.kicker.localhost.
+#
+# Nur für lokale Tests: Testnutzer mit schwachen Passwörtern (admin, anna, ben, Passwort = Benutzername), kein HTTPS.
+global:
+  host: kicker.localhost
+  authHost: auth.kicker.localhost
+  tls: false
+
+kickertool:
+  keycloak:
+    sslRequired: none
+    demoUsers: true
+    # Password-Flow, damit sich Tests ohne Browser anmelden können (z. B. Swagger UI)
+    directAccessGrants: true
