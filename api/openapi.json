@@ -1,0 +1,4559 @@
+{
+  "components" : {
+    "schemas" : {
+      "ChangeParticipantStatus" : {
+        "properties" : {
+          "status" : {
+            "description" : "PAUSED = ab nächster Runde pausieren, ACTIVE = wieder einsteigen, WITHDRAWN = ausscheiden (endgültig)",
+            "enum" : [ "ACTIVE", "PAUSED", "WITHDRAWN" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "status" ],
+        "type" : "object"
+      },
+      "Config" : {
+        "properties" : {
+          "goalLimit" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "matchMinutes" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "plannedRounds" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "pointsDraw" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pointsLoss" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "pointsWin" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "randomRounds" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "tableCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "goalLimit", "matchMinutes", "plannedRounds", "pointsDraw", "pointsLoss", "pointsWin", "randomRounds", "tableCount" ],
+        "type" : "object"
+      },
+      "ConfigRequest" : {
+        "properties" : {
+          "goalLimit" : {
+            "description" : "Ein Match endet bei dieser Torzahl (ein Satz)",
+            "example" : 10,
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "matchMinutes" : {
+            "description" : "Maximale Spielzeit in Minuten",
+            "example" : 5,
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "plannedRounds" : {
+            "description" : "Geplante Rundenzahl, nur zur Anzeige. null = offen",
+            "example" : 8,
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : [ "integer", "null" ]
+          },
+          "pointsDraw" : {
+            "description" : "Punkte für ein Unentschieden",
+            "example" : 1,
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "pointsLoss" : {
+            "description" : "Punkte für eine Niederlage",
+            "example" : 0,
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "pointsWin" : {
+            "description" : "Punkte für einen Sieg",
+            "example" : 3,
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "randomRounds" : {
+            "description" : "Die ersten Runden, die komplett zufällig ausgelost werden. Danach wird nach Rangliste ausgelost (Schweizer DYP).",
+            "example" : 2,
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "tableCount" : {
+            "description" : "Anzahl verfügbarer Tische, gilt ab der nächsten Welle",
+            "example" : 4,
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        },
+        "required" : [ "goalLimit", "matchMinutes", "pointsDraw", "pointsLoss", "pointsWin", "randomRounds", "tableCount" ],
+        "type" : "object"
+      },
+      "Event" : {
+        "properties" : {
+          "id" : {
+            "description" : "Kennung des Events. Beim Neuverbinden als Last-Event-ID senden, dann werden verpasste Events nachgeliefert",
+            "type" : "string"
+          },
+          "matchId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "occurredAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "type" : {
+            "description" : "TOURNAMENT_CHANGED, PARTICIPANTS_CHANGED, ROUND_STARTED, MATCHES_CHANGED, RANKING_CHANGED oder RESYNC (Stand komplett neu laden)",
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "matchId", "occurredAt", "type" ],
+        "type" : "object"
+      },
+      "EventTicket" : {
+        "description" : "Ticket zum Öffnen des Event-Streams ohne Authorization-Header",
+        "properties" : {
+          "expiresInSeconds" : {
+            "description" : "So lange gilt das Ticket (auch mehrfach), die laufende Verbindung bleibt davon unberührt",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "streamUrl" : {
+            "description" : "Fertige Adresse des Streams mit Ticket, relativ zum Backend",
+            "type" : "string"
+          },
+          "ticket" : {
+            "description" : "Das Ticket, nur für dieses Turnier",
+            "type" : "string"
+          }
+        },
+        "required" : [ "expiresInSeconds", "streamUrl", "ticket" ],
+        "type" : "object"
+      },
+      "Match" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "mySide" : {
+            "description" : "Auf welcher Seite der Aufrufer steht (auch als Einspringer), null wenn gar nicht",
+            "enum" : [ "A", "B" ],
+            "type" : [ "string", "null" ]
+          },
+          "permissions" : {
+            "$ref" : "#/components/schemas/MatchPermissions",
+            "description" : "Was der Aufrufer mit diesem Match jetzt tun darf"
+          },
+          "position" : {
+            "description" : "Position in der Warteschlange der Runde, beginnend bei 1",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "result" : {
+            "description" : "Eingetragenes oder festgelegtes Ergebnis, null solange keines vorliegt",
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Result"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "round" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "enum" : [ "QUEUED", "ON_TABLE", "RESULT_ENTERED", "DISPUTED", "CONFIRMED" ],
+            "type" : "string"
+          },
+          "table" : {
+            "description" : "Tischnummer, null solange das Match wartet",
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "teamA" : {
+            "$ref" : "#/components/schemas/Team"
+          },
+          "teamB" : {
+            "$ref" : "#/components/schemas/Team"
+          }
+        },
+        "required" : [ "id", "mySide", "permissions", "position", "result", "round", "status", "table", "teamA", "teamB" ],
+        "type" : "object"
+      },
+      "MatchPermissions" : {
+        "properties" : {
+          "canConfirm" : {
+            "description" : "Ergebnis bestätigen: ein Ergebnis steht und der Aufrufer gehört zum Gegnerteam",
+            "type" : "boolean"
+          },
+          "canDecide" : {
+            "description" : "Ergebnis festlegen oder korrigieren: Aufrufer ist Admin, Match läuft oder ist gespielt",
+            "type" : "boolean"
+          },
+          "canEnterResult" : {
+            "description" : "Ergebnis eintragen: Match läuft am Tisch und der Aufrufer steht dort",
+            "type" : "boolean"
+          },
+          "canReject" : {
+            "description" : "Ergebnis ablehnen: gleiche Bedingung wie canConfirm",
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "canConfirm", "canDecide", "canEnterResult", "canReject" ],
+        "type" : "object"
+      },
+      "Me" : {
+        "properties" : {
+          "admin" : {
+            "description" : "Hat der Aufrufer die Admin-Rolle?",
+            "type" : "boolean"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "admin", "displayName", "id" ],
+        "type" : "object"
+      },
+      "Participant" : {
+        "properties" : {
+          "player" : {
+            "$ref" : "#/components/schemas/Player"
+          },
+          "registeredAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "ACTIVE", "PAUSED", "WITHDRAWN" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "player", "registeredAt", "status" ],
+        "type" : "object"
+      },
+      "PlanTournament" : {
+        "properties" : {
+          "config" : {
+            "$ref" : "#/components/schemas/ConfigRequest",
+            "description" : "Optional, ohne Angabe gelten die Standardwerte"
+          },
+          "date" : {
+            "example" : "2026-10-05",
+            "format" : "date",
+            "type" : "string"
+          },
+          "name" : {
+            "example" : "Sommerturnier",
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "date", "name" ],
+        "type" : "object"
+      },
+      "Player" : {
+        "properties" : {
+          "displayName" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "displayName", "id" ],
+        "type" : "object"
+      },
+      "RankingEntry" : {
+        "properties" : {
+          "draws" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "goalDifference" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "goalsAgainst" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "goalsFor" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "losses" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "matchesPlayed" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "player" : {
+            "$ref" : "#/components/schemas/Player"
+          },
+          "points" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "rank" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "enum" : [ "ACTIVE", "PAUSED", "WITHDRAWN" ],
+            "type" : "string"
+          },
+          "wins" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "draws", "goalDifference", "goalsAgainst", "goalsFor", "losses", "matchesPlayed", "player", "points", "rank", "status", "wins" ],
+        "type" : "object"
+      },
+      "Register" : {
+        "description" : "Anmeldung. Ohne playerId meldet sich der Aufrufer selbst an.",
+        "properties" : {
+          "playerId" : {
+            "description" : "Nur für Admins: ID eines anderen bekannten Spielers",
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "Result" : {
+        "properties" : {
+          "confirmed" : {
+            "description" : "false = wartet auf Bestätigung oder Admin-Entscheid und zählt noch nicht",
+            "type" : "boolean"
+          },
+          "enteredBy" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Player"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "enteredSide" : {
+            "enum" : [ "A", "B" ],
+            "type" : [ "string", "null" ]
+          },
+          "goalsA" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "goalsB" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "source" : {
+            "description" : "TEAM = vom Gegnerteam bestätigt, ADMIN = vom Admin festgelegt",
+            "enum" : [ "TEAM", "ADMIN" ],
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "confirmed", "enteredBy", "enteredSide", "goalsA", "goalsB", "source" ],
+        "type" : "object"
+      },
+      "ResultRequest" : {
+        "description" : "Endstand eines Matches aus Sicht von Team A und Team B",
+        "properties" : {
+          "goalsA" : {
+            "description" : "Tore von Team A",
+            "example" : 10,
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          },
+          "goalsB" : {
+            "description" : "Tore von Team B",
+            "example" : 7,
+            "format" : "int32",
+            "minimum" : 0,
+            "type" : "integer"
+          }
+        },
+        "required" : [ "goalsA", "goalsB" ],
+        "type" : "object"
+      },
+      "Round" : {
+        "properties" : {
+          "complete" : {
+            "description" : "Alle Ergebnisse der Runde sind bestätigt",
+            "type" : "boolean"
+          },
+          "matches" : {
+            "description" : "In der Reihenfolge der Auslosung, also der Warteschlange für die Tische",
+            "items" : {
+              "$ref" : "#/components/schemas/Match"
+            },
+            "type" : "array"
+          },
+          "number" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "complete", "matches", "number" ],
+        "type" : "object"
+      },
+      "Slot" : {
+        "properties" : {
+          "player" : {
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Player"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "standIn" : {
+            "description" : "Nur bei DUMMY: wer tatsächlich spielt, ohne Punkte zu bekommen",
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Player"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "type" : {
+            "enum" : [ "PLAYER", "DUMMY" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "player", "standIn", "type" ],
+        "type" : "object"
+      },
+      "Team" : {
+        "properties" : {
+          "members" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Slot"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "members" ],
+        "type" : "object"
+      },
+      "Tournament" : {
+        "properties" : {
+          "config" : {
+            "$ref" : "#/components/schemas/Config"
+          },
+          "currentRound" : {
+            "description" : "Die aktuelle Runde, null solange noch keine gestartet wurde",
+            "oneOf" : [ {
+              "$ref" : "#/components/schemas/Round"
+            }, {
+              "type" : "null"
+            } ]
+          },
+          "date" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "participants" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Participant"
+            },
+            "type" : "array"
+          },
+          "roundCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "enum" : [ "PLANNED", "RUNNING", "FINISHED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "config", "currentRound", "date", "id", "name", "participants", "roundCount", "status" ],
+        "type" : "object"
+      },
+      "TournamentSummary" : {
+        "properties" : {
+          "date" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "participantCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "roundCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "enum" : [ "PLANNED", "RUNNING", "FINISHED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "date", "id", "name", "participantCount", "roundCount", "status" ],
+        "type" : "object"
+      },
+      "UpdateTournament" : {
+        "properties" : {
+          "date" : {
+            "example" : "2026-10-05",
+            "format" : "date",
+            "type" : "string"
+          },
+          "name" : {
+            "example" : "Sommerturnier",
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "date", "name" ],
+        "type" : "object"
+      }
+    },
+    "securitySchemes" : {
+      "bearerAuth" : {
+        "bearerFormat" : "JWT",
+        "description" : "Access-Token des OIDC-Providers einfügen, ohne das Präfix `Bearer`.",
+        "scheme" : "bearer",
+        "type" : "http"
+      },
+      "oidc" : {
+        "description" : "Anmeldung über den OIDC-Provider (Authorization Code mit PKCE).",
+        "openIdConnectUrl" : "http://localhost:8180/realms/kickertool/.well-known/openid-configuration",
+        "type" : "openIdConnect"
+      }
+    }
+  },
+  "info" : {
+    "description" : "REST-API für Kicker-Turniere (2 gegen 2, wechselnde Partner).\n\n**Anmeldung:** Registrierung und Login übernimmt der OIDC-Provider. Die API prüft nur das Access-Token. Über **Authorize** kann man sich direkt anmelden (`oidc`) oder ein Token einfügen (`bearerAuth`). Admin-Endpunkte verlangen die konfigurierte Admin-Rolle im Token, ein normaler Spieler bekommt dort 403.\n\n**Fehler** kommen als `application/problem+json`.\n\n**Live-Updates:** `GET /api/tournaments/{id}/events` liefert Server-Sent Events. Swagger UI kann diesen Stream nicht darstellen, dafür `curl -N` mit Bearer-Header nutzen.",
+    "title" : "Kickertool API",
+    "version" : "0.1.0"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/me" : {
+      "get" : {
+        "description" : "Liefert den angemeldeten Spieler und ob er Admin ist. Beim ersten Aufruf mit einem gültigen Token wird der Spieler automatisch angelegt.",
+        "operationId" : "me",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Me"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Eigenes Profil",
+        "tags" : [ "Spieler" ]
+      }
+    },
+    "/api/players" : {
+      "get" : {
+        "description" : "**Nur Admin.** Z. B. um einen Spieler per ID zu einem Turnier anzumelden. Bekannt sind nur Spieler, die sich schon einmal angemeldet haben.",
+        "operationId" : "list_1",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Player"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Alle bekannten Spieler",
+        "tags" : [ "Spieler" ]
+      }
+    },
+    "/api/tournaments" : {
+      "get" : {
+        "description" : "Neueste zuerst.",
+        "operationId" : "list",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/TournamentSummary"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Turniere auflisten",
+        "tags" : [ "Turniere" ]
+      },
+      "post" : {
+        "description" : "**Nur Admin.** Ohne `config` gelten die Standardwerte (1 Tisch, 3/1/0 Punkte, 10 Tore, 5 Minuten, 2 Zufallsrunden). Danach können sich Spieler anmelden.",
+        "operationId" : "plan",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PlanTournament"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tournament"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Turnier planen",
+        "tags" : [ "Turniere" ]
+      }
+    },
+    "/api/tournaments/{id}" : {
+      "get" : {
+        "description" : "Mit Konfiguration, Teilnehmern und der aktuellen Runde samt Matches.",
+        "operationId" : "get",
+        "parameters" : [ {
+          "description" : "Turnier-ID",
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tournament"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Turnier abrufen",
+        "tags" : [ "Turniere" ]
+      },
+      "put" : {
+        "description" : "**Nur Admin.**",
+        "operationId" : "update",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateTournament"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tournament"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Name und Datum ändern",
+        "tags" : [ "Turniere" ]
+      }
+    },
+    "/api/tournaments/{id}/config" : {
+      "put" : {
+        "description" : "**Nur Admin.** Auch während des Turniers möglich, z. B. wenn ein Tisch ausfällt. Eine neue Tischzahl gilt ab der nächsten Welle, eine geänderte Punktevergabe wirkt sofort auf die Rangliste.",
+        "operationId" : "updateConfig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ConfigRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tournament"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Konfiguration ersetzen",
+        "tags" : [ "Turniere" ]
+      }
+    },
+    "/api/tournaments/{id}/finish" : {
+      "post" : {
+        "description" : "**Nur Admin.** Nur möglich, wenn alle Ergebnisse bestätigt sind.",
+        "operationId" : "finish",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tournament"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Turnier beenden",
+        "tags" : [ "Turniere" ]
+      }
+    },
+    "/api/tournaments/{id}/ranking" : {
+      "get" : {
+        "description" : "Einzelrangliste nach Punkten, Tordifferenz und erzielten Toren. Es zählen nur bestätigte Ergebnisse. Ausgeschiedene Spieler sind mit Status `WITHDRAWN` enthalten.",
+        "operationId" : "ranking",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/RankingEntry"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Rangliste",
+        "tags" : [ "Rangliste und Runden" ]
+      }
+    },
+    "/api/tournaments/{id}/rounds" : {
+      "get" : {
+        "operationId" : "rounds",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Round"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Alle Runden mit Matches",
+        "tags" : [ "Rangliste und Runden" ]
+      },
+      "post" : {
+        "description" : "**Nur Admin.** Lost die aktiven Spieler zu Teams, setzt die ersten Matches an die Tische und stellt die übrigen in die Warteschlange. Erst möglich, wenn alle Ergebnisse der letzten Runde bestätigt sind (sonst 409).",
+        "operationId" : "startNextRound",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tournament"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Nächste Runde auslosen",
+        "tags" : [ "Turniere" ]
+      }
+    },
+    "/api/tournaments/{id}/rounds/current" : {
+      "get" : {
+        "description" : "404, solange noch keine Runde gestartet wurde.",
+        "operationId" : "currentRound",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Round"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Aktuelle Runde",
+        "tags" : [ "Rangliste und Runden" ]
+      }
+    },
+    "/api/tournaments/{id}/start" : {
+      "post" : {
+        "description" : "**Nur Admin.** Danach laufen die Runden. Anmelden ist weiterhin möglich, neue Spieler spielen ab der nächsten Runde mit.",
+        "operationId" : "start",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tournament"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Turnier starten",
+        "tags" : [ "Turniere" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/events" : {
+      "get" : {
+        "description" : "Server-Sent Events. Sendet `connected` und danach bei Änderungen die Events `TOURNAMENT_CHANGED`, `PARTICIPANTS_CHANGED`, `ROUND_STARTED`, `MATCHES_CHANGED` und `RANKING_CHANGED` (JSON mit `id`, `type`, `matchId`, `occurredAt`, ohne Nutzdaten). Clients laden danach den neuen Stand über die normalen Endpunkte.\n\n**Anmeldung:** mit dem Bearer-Token im `Authorization`-Header oder mit einem Ticket in `ticket`.\n\n**Nachliefern:** Jedes Event hat eine `id`. Wer sich mit der `id` des letzten empfangenen Events in `Last-Event-ID` (oder, wo kein Header möglich ist, in `lastEventId`) neu verbindet, der Browser macht das bei einer Wiederverbindung desselben `EventSource` von allein, bekommt die verpassten Events nachgeliefert. Geht das nicht mehr (zu lange weg, Server neu gestartet), kommt ein einzelnes `RESYNC`: Dann den Stand komplett neu laden.\n\nIn Swagger UI nicht darstellbar, lokal z. B. mit `curl -N -H \"Authorization: Bearer ...\"`.",
+        "operationId" : "stream",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Kennung des letzten empfangenen Events, für das Nachliefern verpasster Events",
+          "in" : "header",
+          "name" : "Last-Event-ID",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Ticket statt Bearer-Token, siehe `POST …/events/ticket`",
+          "in" : "query",
+          "name" : "ticket",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "Wie `Last-Event-ID`, für Clients, die keinen Header setzen können: ein neues `EventSource`-Objekt kann das nicht. Der Header hat Vorrang.",
+          "in" : "query",
+          "name" : "lastEventId",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "text/event-stream" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Event"
+                }
+              }
+            },
+            "description" : "Dauerhafte Verbindung mit Events"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Live-Updates abonnieren",
+        "tags" : [ "Live-Updates" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/events/ticket" : {
+      "post" : {
+        "description" : "Der Browser-`EventSource` kann keinen `Authorization`-Header senden. Mit dem Bearer-Token holt die UI hier ein kurzlebiges Ticket und öffnet damit den Stream: `GET …/events?ticket=<ticket>` (die Adresse steht fertig in `streamUrl`). Das Ticket gilt nur für dieses Turnier und nur kurz (`expiresInSeconds`), in dieser Zeit auch mehrfach, damit sich der Browser nach einem Verbindungsabbruch mit derselben Adresse neu verbinden kann. Danach holt die UI ein neues Ticket. Die laufende Verbindung bleibt vom Ablauf unberührt.",
+        "operationId" : "createTicket",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EventTicket"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Ticket für den Event-Stream holen",
+        "tags" : [ "Live-Updates" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/matches/mine" : {
+      "get" : {
+        "description" : "Alle Matches des Aufrufers in diesem Turnier, auch als Einspringer, in Reihenfolge der Runden. Zeigt Tisch und Status, also ob und wo man gerade spielen soll.",
+        "operationId" : "mine",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Match"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Meine Matches",
+        "tags" : [ "Matches und Ergebnisse" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/matches/{matchId}" : {
+      "get" : {
+        "operationId" : "get_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "matchId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Match"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Ein Match abrufen",
+        "tags" : [ "Matches und Ergebnisse" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/matches/{matchId}/result" : {
+      "put" : {
+        "description" : "**Nur Admin.** Legt das Ergebnis eines Matches fest, das gespielt wird oder wurde, und bestätigt es sofort. Auch bestätigte Ergebnisse lassen sich nachträglich ändern, die Rangliste rechnet sich neu.",
+        "operationId" : "decide",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "matchId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResultRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Match"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Ergebnis als Admin festlegen oder korrigieren",
+        "tags" : [ "Matches und Ergebnisse" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/matches/{matchId}/result-proposal" : {
+      "post" : {
+        "description" : "Ein Spieler des Matches (auch ein Einspringer) trägt den Endstand ein. Das Match muss am Tisch spielen. Das Ergebnis zählt erst, wenn das Gegnerteam es bestätigt. Kein Team darf mehr Tore als das Limit haben, und beide zusammen dürfen das Limit nicht erreichen (400).",
+        "operationId" : "propose",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "matchId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResultRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Match"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Ergebnis eintragen",
+        "tags" : [ "Matches und Ergebnisse" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/matches/{matchId}/result-proposal/confirmation" : {
+      "post" : {
+        "description" : "Ein Spieler des **gegnerischen** Teams bestätigt das eingetragene Ergebnis. Das eintragende Team kann nicht selbst bestätigen (403).",
+        "operationId" : "confirm",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "matchId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Match"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Ergebnis bestätigen",
+        "tags" : [ "Matches und Ergebnisse" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/matches/{matchId}/result-proposal/rejection" : {
+      "post" : {
+        "description" : "Ein Spieler des gegnerischen Teams lehnt das Ergebnis ab. Das Match hat dann den Status `DISPUTED`, der Admin legt das Ergebnis fest.",
+        "operationId" : "reject",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "matchId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Match"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Ergebnis ablehnen",
+        "tags" : [ "Matches und Ergebnisse" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/participants" : {
+      "post" : {
+        "description" : "Ohne Body meldet sich der Aufrufer selbst an. Ein Admin kann mit `playerId` einen anderen bekannten Spieler anmelden. Möglich bis zum Turnierende, wer nach dem Start kommt, spielt ab der nächsten Runde mit. Doppelte Anmeldung ergibt 409.",
+        "operationId" : "register",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Register"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tournament"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Zum Turnier anmelden",
+        "tags" : [ "Teilnahme" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/participants/{playerId}" : {
+      "delete" : {
+        "description" : "Nur vor dem Start. Danach gibt es nur Pause oder Ausscheiden.",
+        "operationId" : "unregister",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Spieler-ID oder `me` für den Aufrufer",
+          "in" : "path",
+          "name" : "playerId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tournament"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Vom Turnier abmelden",
+        "tags" : [ "Teilnahme" ]
+      }
+    },
+    "/api/tournaments/{tournamentId}/participants/{playerId}/status" : {
+      "put" : {
+        "description" : "`PAUSED`: ab der nächsten Runde nicht mehr zugelost (die laufende Runde wird normal gespielt). `ACTIVE`: wieder einsteigen. `WITHDRAWN`: ausscheiden, die Punkte bleiben erhalten, eine Rückkehr ist nicht möglich.",
+        "operationId" : "changeStatus",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "tournamentId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Spieler-ID oder `me` für den Aufrufer",
+          "in" : "path",
+          "name" : "playerId",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ChangeParticipantStatus"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Tournament"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Ungültige Eingabe, z. B. Pflichtfeld fehlt oder Ergebnis über dem Tor-Limit"
+          },
+          "401" : {
+            "description" : "Kein oder ungültiges Token"
+          },
+          "403" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Keine Berechtigung, z. B. kein Admin oder nicht Teil des Matches"
+          },
+          "404" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Nicht gefunden"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "properties" : {
+                    "detail" : {
+                      "example" : "Runde 1 ist noch nicht abgeschlossen",
+                      "type" : "string"
+                    },
+                    "instance" : {
+                      "type" : "string"
+                    },
+                    "status" : {
+                      "example" : 409,
+                      "format" : "int32",
+                      "type" : "integer"
+                    },
+                    "title" : {
+                      "example" : "Conflict",
+                      "type" : "string"
+                    },
+                    "type" : {
+                      "example" : "about:blank",
+                      "type" : "string"
+                    }
+                  },
+                  "type" : "object"
+                }
+              }
+            },
+            "description" : "Passt nicht zum aktuellen Stand, z. B. falscher Turnierstatus oder Runde nicht abgeschlossen"
+          }
+        },
+        "summary" : "Teilnahmestatus ändern",
+        "tags" : [ "Teilnahme" ]
+      }
+    }
+  },
+  "security" : [ {
+    "bearerAuth" : [ ]
+  }, {
+    "oidc" : [ ]
+  } ],
+  "tags" : [ {
+    "description" : "Änderungen eines Turniers als Server-Sent Events",
+    "name" : "Live-Updates"
+  }, {
+    "description" : "Anmeldung, Pause und Ausscheiden. Spieler verwalten nur sich selbst, Admins jeden.",
+    "name" : "Teilnahme"
+  }, {
+    "description" : "Das eigene Profil und die bekannten Spieler",
+    "name" : "Spieler"
+  }, {
+    "description" : "Ein Team trägt das Ergebnis ein, das Gegnerteam bestätigt. Lehnt es ab, entscheidet der Admin.",
+    "name" : "Matches und Ergebnisse"
+  } ]
+}

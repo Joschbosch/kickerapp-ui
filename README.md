@@ -1,0 +1,47 @@
+# Kickertool UI
+
+Angular-Oberfläche für das [Kickertool](https://github.com/Joschbosch/kickerapp) (Kicker-Turnierverwaltung). Eine
+responsive App, installierbar als PWA: Handy für Spieler, Desktop-Web für Admin und Spieler.
+
+Stand: Anmeldung, Turnierliste, Turnier mit Rangliste. Als Nächstes: Spieler-Ansicht (anmelden, mein Spiel, Ergebnis
+eintragen und bestätigen), Admin-Ansicht (Turnier verwalten, Runden, Tabellen-Fenster), Live-Updates, OIDC-Anmeldung.
+
+## Schnellstart
+
+Voraussetzungen: Node.js 22 oder neuer, für das Backend JDK 21 oder neuer.
+
+1. Backend lokal starten (im Backend-Repo `kickerapp`): `./scripts/run-local.sh`, unter Windows `.\scripts\run-local.ps1`.
+   Das startet die API auf http://localhost:8080 mit simuliertem Login und einem Demo-Turnier.
+2. UI starten:
+
+   ```bash
+   npm install
+   npm start
+   ```
+
+3. http://localhost:4200 öffnen und anmelden. Benutzername und Passwort sind gleich: `admin` (Admin), `anna`, `ben`,
+   `clara`, `david`, `emma`, `felix`, `greta`, `hans`, `ida`, `jonas`.
+
+## Befehle
+
+| Befehl                | Wirkung                                                                      |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `npm start`           | Entwicklungsserver auf Port 4200                                             |
+| `npm test`            | Tests (Vitest), einmalig mit `npm test -- --no-watch`                        |
+| `npm run build`       | Produktions-Build nach `dist/kickertool-ui` (mit Service Worker)             |
+| `npm run api:sync`    | Vertrag aus `../kickerapp/docs/openapi.json` übernehmen und Typen erzeugen   |
+
+## Einstellungen
+
+`public/config.json` wird beim Start geladen und kann nach dem Bauen ausgetauscht werden:
+
+```json
+{ "apiBaseUrl": "http://localhost:8080", "authMode": "password" }
+```
+
+- `apiBaseUrl`: Adresse des Backends. Das Backend muss die Herkunft der UI freigeben (`KICKERTOOL_CORS_ALLOWED_ORIGINS`).
+- `authMode`: `password` (Formular am simulierten Login des lokalen Backends, nur Entwicklung), später `oidc`.
+
+## Weiterarbeiten
+
+Regeln für Entwickler und Assistenten stehen in [AGENTS.md](AGENTS.md).

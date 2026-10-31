@@ -1,0 +1,84 @@
+<a mat-button routerLink="/turniere" class="back">
+  <mat-icon aria-hidden="true">arrow_back</mat-icon>
+  Alle Turniere
+</a>
+
+@if (data.isLoading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Turnier wird geladen" />
+}
+
+@if (data.error()) {
+  <div class="message" role="alert">
+    <p>Das Turnier konnte nicht geladen werden.</p>
+    <button mat-stroked-button type="button" (click)="data.reload()">Erneut versuchen</button>
+  </div>
+} @else if (data.hasValue()) {
+  @let tournament = data.value().tournament;
+  @let ranking = data.value().ranking;
+
+  <header>
+    <h1>{{ tournament.name }}</h1>
+    <p class="subtitle">
+      {{ tournament.date | date: 'fullDate' }} · {{ tournamentStatus[tournament.status] }}
+      @if (tournament.roundCount > 0) {
+        · Runde {{ tournament.roundCount }}
+      }
+    </p>
+  </header>
+
+  <section aria-labelledby="ranking-title">
+    <h2 id="ranking-title">Rangliste</h2>
+    @if (ranking.length === 0) {
+      <p class="message">Noch keine Spieler angemeldet.</p>
+    } @else {
+      <div class="table-wrap">
+        <table mat-table [dataSource]="ranking" aria-label="Rangliste">
+          <ng-container matColumnDef="rank">
+            <th mat-header-cell *matHeaderCellDef>#</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.rank }}</td>
+          </ng-container>
+          <ng-container matColumnDef="player">
+            <th mat-header-cell *matHeaderCellDef>Spieler</th>
+            <td mat-cell *matCellDef="let entry">
+              {{ entry.player.displayName }}
+              @if (entry.status !== 'ACTIVE') {
+                <span class="status">{{ participantStatusLabel(entry.status) }}</span>
+              }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="points">
+            <th mat-header-cell *matHeaderCellDef>Punkte</th>
+            <td mat-cell *matCellDef="let entry" class="strong">{{ entry.points }}</td>
+          </ng-container>
+          <ng-container matColumnDef="played">
+            <th mat-header-cell *matHeaderCellDef class="secondary">Spiele</th>
+            <td mat-cell *matCellDef="let entry" class="secondary">{{ entry.matchesPlayed }}</td>
+          </ng-container>
+          <ng-container matColumnDef="wins">
+            <th mat-header-cell *matHeaderCellDef class="secondary">S</th>
+            <td mat-cell *matCellDef="let entry" class="secondary">{{ entry.wins }}</td>
+          </ng-container>
+          <ng-container matColumnDef="draws">
+            <th mat-header-cell *matHeaderCellDef class="secondary">U</th>
+            <td mat-cell *matCellDef="let entry" class="secondary">{{ entry.draws }}</td>
+          </ng-container>
+          <ng-container matColumnDef="losses">
+            <th mat-header-cell *matHeaderCellDef class="secondary">N</th>
+            <td mat-cell *matCellDef="let entry" class="secondary">{{ entry.losses }}</td>
+          </ng-container>
+          <ng-container matColumnDef="goals">
+            <th mat-header-cell *matHeaderCellDef class="secondary">Tore</th>
+            <td mat-cell *matCellDef="let entry" class="secondary">{{ entry.goalsFor }}:{{ entry.goalsAgainst }}</td>
+          </ng-container>
+          <ng-container matColumnDef="difference">
+            <th mat-header-cell *matHeaderCellDef>Diff.</th>
+            <td mat-cell *matCellDef="let entry">{{ entry.goalDifference > 0 ? '+' : '' }}{{ entry.goalDifference }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+      </div>
+    }
+  </section>
+}

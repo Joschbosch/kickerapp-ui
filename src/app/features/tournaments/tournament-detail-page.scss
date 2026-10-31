@@ -1,0 +1,48 @@
+.back {
+  margin-left: -8px;
+}
+
+h1 {
+  font: var(--mat-sys-headline-medium);
+  margin: 8px 0 4px;
+}
+
+h2 {
+  font: var(--mat-sys-title-large);
+  margin: 24px 0 8px;
+}
+
+.subtitle,
+.message {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  background: transparent;
+}
+
+.strong {
+  font-weight: 500;
+}
+
+.status {
+  margin-left: 6px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+}
+
+// Auf dem Handy nur Rang, Spieler, Punkte und Differenz, der Rest passt nicht
+@media (max-width: 599px) {
+  .secondary {
+    display: none;
+  }
+}

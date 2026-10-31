@@ -1,0 +1,38 @@
+<main class="login">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-icon mat-card-avatar aria-hidden="true">sports_soccer</mat-icon>
+      <mat-card-title>Kickertool</mat-card-title>
+      <mat-card-subtitle>Bitte anmelden</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()" class="form">
+        <mat-form-field appearance="outline">
+          <mat-label>Benutzername</mat-label>
+          <input matInput formControlName="username" autocomplete="username" autocapitalize="none" required />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Passwort</mat-label>
+          <input matInput type="password" formControlName="password" autocomplete="current-password" required />
+        </mat-form-field>
+
+        @if (error(); as message) {
+          <p class="error" role="alert">{{ message }}</p>
+        }
+
+        <button mat-flat-button type="submit" [disabled]="form.invalid || busy()">
+          {{ busy() ? 'Melde an …' : 'Anmelden' }}
+        </button>
+      </form>
+
+      @if (developmentMode) {
+        <p class="hint">
+          Entwicklungsmodus: Benutzername und Passwort sind gleich, zum Beispiel <code>anna</code> oder
+          <code>admin</code>.
+        </p>
+      }
+    </mat-card-content>
+  </mat-card>
+</main>

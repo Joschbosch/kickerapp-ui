@@ -1,0 +1,45 @@
+<h1>Turniere</h1>
+
+@if (tournaments.isLoading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Turniere werden geladen" />
+}
+
+@if (tournaments.error()) {
+  <div class="message" role="alert">
+    <p>Die Turniere konnten nicht geladen werden.</p>
+    <button mat-stroked-button type="button" (click)="tournaments.reload()">Erneut versuchen</button>
+  </div>
+} @else if (tournaments.hasValue()) {
+  @let list = tournaments.value();
+  @if (list.length === 0) {
+    <p class="message">Es gibt noch kein Turnier.</p>
+  } @else {
+    <ul class="cards">
+      @for (tournament of list; track tournament.id) {
+        <li>
+          <a class="card" [routerLink]="['/turniere', tournament.id]">
+            <mat-card appearance="outlined">
+              <mat-card-header>
+                <mat-card-title>{{ tournament.name }}</mat-card-title>
+                <mat-card-subtitle>{{ tournament.date | date: 'fullDate' }}</mat-card-subtitle>
+              </mat-card-header>
+              <mat-card-content>
+                <span class="chip" [attr.data-status]="tournament.status">{{ statusLabel[tournament.status] }}</span>
+                <span class="meta">
+                  <mat-icon aria-hidden="true">groups</mat-icon>
+                  {{ tournament.participantCount }} Spieler
+                </span>
+                @if (tournament.roundCount > 0) {
+                  <span class="meta">
+                    <mat-icon aria-hidden="true">repeat</mat-icon>
+                    Runde {{ tournament.roundCount }}
+                  </span>
+                }
+              </mat-card-content>
+            </mat-card>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+}
