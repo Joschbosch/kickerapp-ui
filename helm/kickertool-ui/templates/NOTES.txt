@@ -1,0 +1,32 @@
+Kickertool-UI {{ .Chart.AppVersion }} wurde als "{{ .Release.Name }}" in "{{ .Release.Namespace }}" installiert.
+{{- if .Values.ingress.enabled }}
+
+Erreichbar über den Ingress: http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }}
+{{- else }}
+
+Ohne Ingress, lokal per port-forward:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "kickertool-ui.fullname" . }} 4200:{{ .Values.service.port }}
+Dann: http://localhost:4200
+{{- end }}
+
+Die UI ruft im Browser auf:
+  API:       {{ .Values.config.apiBaseUrl }}
+{{- if eq .Values.config.authMode "oidc" }}
+  Anmeldung: {{ .Values.config.oidc.authority }}
+{{- end }}
+
+Damit die Anmeldung klappt, muss das Backend (Chart `kickertool`) diese UI zulassen:
+  - app.corsAllowedOrigins enthält die Adresse der UI
+{{- if eq .Values.config.authMode "oidc" }}
+  - keycloak.redirectUris enthält <Adresse der UI>/auth/callback und <Adresse der UI>/abgemeldet (oder <Adresse der UI>/*)
+  - keycloak.webOrigins enthält die Adresse der UI
+  - keycloak.hostname ist genau config.oidc.authority ohne /realms/<Realm>
+{{- end }}
+{{- if and (eq .Values.config.authMode "oidc") .Values.config.oidc.allowInsecureContext }}
+
+ACHTUNG: config.oidc.allowInsecureContext=true ersetzt eine Sicherheitsfunktion des Browsers. Nur für Tests im eigenen Netz.
+{{- end }}
+{{- if eq .Values.config.authMode "password" }}
+
+ACHTUNG: authMode=password gibt es nur am simulierten Login des lokalen Backends. Nie im Betrieb.
+{{- end }}

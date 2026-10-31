@@ -108,6 +108,46 @@ Das Handy erreicht `localhost` des PCs nicht, alles läuft deshalb über die Adr
 ist sie nicht nötig. Browser-Benachrichtigungen (Systembenachrichtigung) gibt es über HTTP ebenfalls nicht, Vibration, Ton und der
 Hinweis in der App gehen.
 
+## Container und Kubernetes
+
+Die UI ist eine statische App. Das Image (`Dockerfile`) baut sie mit Node und liefert sie mit nginx aus, ohne Root (Benutzer 101),
+auf Port 8080, mit schreibgeschütztem Dateisystem lauffähig. Das Image enthält keine Umgebungswerte: Adresse der API und
+Anmeldung stehen in `/usr/share/nginx/html/config.json` (Standard: `docker/config.json`, also `localhost`) und werden beim Start
+durch die eigene Datei ersetzt, ohne neu zu bauen.
+
+```bash
+docker build -t kickertool-ui:0.1.0 .
+docker run --rm -p 4200:8080 -v ./config.json:/usr/share/nginx/html/config.json:ro kickertool-ui:0.1.0
+```
+
+**Im Cluster** (Chart `helm/kickertool-ui`, nur die UI; Backend, Datenbank und Keycloak kommen aus dem Chart `kickertool` im
+Backend-Repo). Pflicht sind die Adressen, unter denen der **Browser** die API und Keycloak erreicht:
+
+```bash
+helm install ui helm/kickertool-ui \
+  --set config.apiBaseUrl=https://api.turnier.example.com \
+  --set config.oidc.authority=https://auth.turnier.example.com/realms/kickertool \
+  --set ingress.enabled=true --set ingress.host=turnier.example.com
+```
+
+Zum lokalen Ausprobieren (Rancher Desktop) mit dem lokalen Backend-Chart und `port-forward` (Anleitung in
+`helm/kickertool-ui/values-local.yaml`):
+
+```bash
+helm install ui helm/kickertool-ui -f helm/kickertool-ui/values-local.yaml
+kubectl port-forward svc/ui-kickertool-ui 4200:8080     # dann http://localhost:4200
+```
+
+- Ohne `config.apiBaseUrl` (und im Modus `oidc` ohne `config.oidc.authority`) bricht die Installation ab.
+- Das Backend muss die UI zulassen: ihre Adresse in `app.corsAllowedOrigins` (CORS), in Keycloak als Weiterleitung
+  (`<UI>/auth/callback`, `<UI>/abgemeldet`) und als Web-Origin. Die Hinweise nach der Installation (`NOTES.txt`) listen das auf.
+- `config.authMode=password` gibt es nur am simulierten Login des lokalen Backends, nie im Betrieb. `config.oidc.allowInsecureContext`
+  ist nur für Tests über HTTP im eigenen Netz.
+- Die UI ist zustandslos, mehrere Replikas sind unkritisch. Das Backend dagegen hält Live-Updates im Speicher und bleibt bei einer.
+- nginx (`docker/default.conf`) liefert die Startseite für jede App-Adresse (`/turniere/42`, `/auth/callback`), `index.html`,
+  `config.json` und die Service-Worker-Dateien mit `no-cache` und Dateien mit Hash im Namen ein Jahr lang. Eine Content-Security-Policy
+  gibt es nicht, sie hinge von den Adressen der API und von Keycloak ab (am besten am Ingress setzen).
+
 ## Weiterarbeiten
 
 Regeln für Entwickler und Assistenten stehen in [AGENTS.md](AGENTS.md).

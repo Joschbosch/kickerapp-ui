@@ -95,6 +95,18 @@ Diese Datei gilt für alle Assistenten (Codex, Claude Code, ...). Eigenheiten ei
   die Warteschlangen-Angabe aus `shared/queue.ts` (reine Anzeige der Wellen-Regel, das Backend entscheidet).
 - Tests: `TurnAlerts` mit gefälschtem `KickerApi`, `LiveUpdates` und `ALERT_EFFECTS` (siehe `turn-alerts.spec.ts`).
 
+## Container und Helm
+- `Dockerfile` (Node-Build, dann `nginxinc/nginx-unprivileged`, Benutzer 101, Port 8080), `docker/` (nginx-Konfiguration, Header,
+  Standard-`config.json`) und Chart `helm/kickertool-ui` (Deployment, Service, ConfigMap, optional Ingress). Beschreibung in der README.
+- Das Image enthält **keine** Umgebungswerte. `public/config.json` steht in `.dockerignore` (sie kann lokale Werte enthalten, z. B.
+  die LAN-Adresse zum Test am Handy), das Image bekommt `docker/config.json`. Im Cluster ersetzt die ConfigMap die Datei per `subPath`,
+  deshalb startet ein `checksum/config` die Pods bei geänderter Konfiguration neu.
+- nginx: Reguläre Ausdrücke mit `{8}` in Anführungszeichen setzen (sonst Blockende). In jeder `location` mit `add_header` die Header aus
+  `security-headers.conf` einbinden, denn `add_header` einer `location` ersetzt die des Servers.
+- Nach Änderungen am `Dockerfile`, an `docker/` oder am Chart: `docker build -t kickertool-ui:0.1.0 .`, `helm lint helm/kickertool-ui -f
+  helm/kickertool-ui/values-local.yaml`, in einem Test-Namespace installieren, `config.json` und eine App-Adresse (`/turniere/42`) abrufen
+  und alles wieder entfernen.
+
 ## Prüfen vor dem Abschluss
 - `npm test` und `npm run build` (Typprüfung und Vorlagen werden beim Bauen geprüft).
 - Gegen das lokale Backend durchspielen: Als `admin` das Demo-Turnier starten und eine Runde auslosen, als Spieler ein

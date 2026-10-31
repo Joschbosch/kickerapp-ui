@@ -1,0 +1,15 @@
+# Für einen lokalen Cluster (z. B. Rancher Desktop) mit dem Chart `kickertool` aus dem Backend-Repo
+# (`-f values-local.yaml` dort), alles erreicht per port-forward:
+#   kubectl port-forward svc/<backend>-kickertool 8080:8080
+#   kubectl port-forward svc/<backend>-kickertool-keycloak 8180:8080
+#   kubectl port-forward svc/<ui>-kickertool-ui 4200:8080
+# Dann http://localhost:4200 öffnen. Die Adresse der UI (Port 4200) ist im Backend-Chart für CORS und in Keycloak
+# als Rückleitung schon freigegeben.
+#
+# Nur für lokale Tests: Testnutzer des Backend-Charts (Passwort = Benutzername), kein HTTPS.
+config:
+  apiBaseUrl: http://localhost:8080
+  authMode: oidc
+  oidc:
+    authority: http://localhost:8180/realms/kickertool
+    clientId: kickertool-app

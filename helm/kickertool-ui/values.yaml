@@ -1,0 +1,49 @@
+# Standardwerte für das Chart der Kickertool-UI.
+# Das Chart startet nur die UI (nginx mit den statischen Dateien). Das Backend und Keycloak kommen aus dem Chart
+# `kickertool` im Backend-Repo. Pflicht sind die Adressen, unter denen der BROWSER die API und Keycloak erreicht.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: kickertool-ui
+  # leer = appVersion aus Chart.yaml
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+replicaCount: 1
+
+# Wird als config.json in die UI gelegt (ConfigMap). Ändert sich der Inhalt, starten die Pods neu.
+config:
+  # Adresse des Backends, so wie der Browser sie aufruft, ohne abschließenden Schrägstrich, z. B. https://api.turnier.example.com
+  apiBaseUrl: ""
+  # `oidc` (Keycloak o. Ä.) oder `password` (nur für das lokale Backend mit simuliertem Login, nie im Betrieb)
+  authMode: oidc
+  oidc:
+    # Adresse des Realms, genau wie der Aussteller (`iss`) im Token, z. B. https://auth.turnier.example.com/realms/kickertool
+    authority: ""
+    clientId: kickertool-app
+    # Nur für Tests im eigenen Netz über HTTP (z. B. am Handy). Im Betrieb gehört HTTPS davor, dann false lassen.
+    allowInsecureContext: false
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  # Host der UI
+  host: ""
+  tls: []
+  #  - secretName: kickertool-ui-tls
+  #    hosts: [turnier.example.com]
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 32Mi
+  limits:
+    memory: 128Mi

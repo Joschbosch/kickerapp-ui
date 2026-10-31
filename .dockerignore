@@ -1,0 +1,14 @@
+# Nichts davon braucht der Image-Bau. Besonders public/config.json: Sie enthält lokale Werte (Adressen im eigenen Netz),
+# die nicht ins Image gehören. Das Image bekommt docker/config.json.
+.git
+.angular
+.vscode
+node_modules
+dist
+coverage
+api
+scripts
+helm
+public/config.json
+*.md
+npm-debug.log
