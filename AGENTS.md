@@ -82,6 +82,19 @@ Diese Datei gilt für alle Assistenten (Codex, Claude Code, ...). Eigenheiten ei
   Ticket an.
 - Token-Erneuerung gibt es noch nicht (kommt mit dem OIDC-Login). Der simulierte Login stellt 8-Stunden-Tokens aus.
 
+## „Du bist dran“ (Hinweise)
+- `core/alerts/turn-alerts.ts` (`TurnAlerts`, von der Shell gestartet, solange jemand angemeldet ist): Findet alle laufenden
+  Turniere, in denen der Spieler angemeldet ist (`GET /api/tournaments` + Details, alle 60 s), beobachtet jedes über `LiveUpdates`
+  und lädt bei Events `…/matches/mine`. Ein Match mit Status `ON_TABLE` ist ein Hinweis (`calls`). Gemeldet (Ton, Vibration,
+  Systembenachrichtigung) wird nur, was **neu** an den Tisch kam: Der erste Stand beim Laden und alles, was in `sessionStorage`
+  (`kickertool.alert.seen`) schon steht, bleibt still. „Verstanden“ merkt sich `kickertool.alert.dismissed`.
+- `core/alerts/alert-effects.ts` (`ALERT_EFFECTS`, in Tests ersetzen): Vibration, Ton (Web Audio, erst nach dem ersten Tippen
+  auf die Seite möglich), Systembenachrichtigung nur bei versteckter Seite und erteilter Erlaubnis (über den Service Worker, sonst
+  `new Notification`). Echtes Push bei geschlossener App gibt es nicht, das bräuchte das Backend (VAPID, Abos, Versand pro Spieler).
+- Anzeige: `features/shell/turn-banner.ts` in der Shell. Partner und Gegner kommen aus `shared/pairing.ts` (auch für Einspringer),
+  die Warteschlangen-Angabe aus `shared/queue.ts` (reine Anzeige der Wellen-Regel, das Backend entscheidet).
+- Tests: `TurnAlerts` mit gefälschtem `KickerApi`, `LiveUpdates` und `ALERT_EFFECTS` (siehe `turn-alerts.spec.ts`).
+
 ## Prüfen vor dem Abschluss
 - `npm test` und `npm run build` (Typprüfung und Vorlagen werden beim Bauen geprüft).
 - Gegen das lokale Backend durchspielen: Als `admin` das Demo-Turnier starten und eine Runde auslosen, als Spieler ein

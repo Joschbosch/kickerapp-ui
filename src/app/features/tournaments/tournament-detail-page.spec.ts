@@ -6,7 +6,7 @@ import { provideRouter } from '@angular/router';
 
 import { Match, RankingEntry, Tournament } from '../../api/models';
 import { AuthService } from '../../core/auth/auth.service';
-import { ANNA, BEN, CLARA, match, participant, tournament } from '../../testing/fixtures';
+import { ANNA, BEN, CLARA, match, participant, round, tournament } from '../../testing/fixtures';
 import { controlledLiveUpdates } from '../../testing/live';
 import { LIVE_DEBOUNCE_MS } from '../../core/events/live-reload';
 import { TournamentDetailPage } from './tournament-detail-page';
@@ -166,6 +166,85 @@ describe('TournamentDetailPage', () => {
       [match({ status: 'RESULT_ENTERED' })],
     );
     expect(text()).toContain('Ergebnis eingetragen');
+  });
+
+  it('zeigt dem Spieler seinen eigenen Stand', async () => {
+    await load(
+      tournament({ status: 'RUNNING', roundCount: 1, participants: [participant(ANNA), participant(BEN)] }),
+      [entry(1, BEN, 6), entry(2, ANNA, 3)],
+      [],
+    );
+
+    const summary = element().querySelector('.summary')!.textContent!.replace(/\s+/g, ' ');
+    expect(summary).toContain('Platz 2 von 2');
+    expect(summary).toContain('3 Punkte');
+    expect(summary).toContain('1 Spiele');
+    expect(summary).toContain('Tore 10:5 (+5)');
+  });
+
+  it('zeigt den eigenen Stand nicht vor dem Start und nicht ohne Teilnahme', async () => {
+    await load(tournament({ participants: [participant(ANNA)] }), [entry(1, ANNA, 0)], []);
+    expect(element().querySelector('.summary')).toBeNull();
+  });
+
+  it('zeigt die Tische der Runde mit Link zur großen Anzeige', async () => {
+    const round1 = round(1, [match({ id: 'a', table: 1, mySide: 'A' }), match({ id: 'b', table: 2, mySide: null })]);
+    await load(
+      tournament({ status: 'RUNNING', roundCount: 1, currentRound: round1, participants: [participant(ANNA)] }),
+      [],
+      [match({ id: 'a' })],
+    );
+
+    expect(text()).toContain('Tische');
+    expect(element().querySelectorAll('app-tables-overview .tables li').length).toBe(2);
+    expect(element().querySelector('app-tables-overview a')!.getAttribute('href')).toBe('/anzeige/t1');
+  });
+
+  it('zeigt keine Tische, solange das Turnier nicht läuft', async () => {
+    await load(tournament({ participants: [participant(ANNA)] }), [], []);
+
+    expect(element().querySelector('app-tables-overview')).toBeNull();
+  });
+
+  it('sagt einem wartenden Spieler, in welcher Welle er drankommt', async () => {
+    const waiting = match({ id: 'w', status: 'QUEUED', table: null, position: 3, mySide: 'A' });
+    const round1 = round(1, [
+      match({ id: 'a', table: 1, position: 1, mySide: null }),
+      match({ id: 'b', table: 2, position: 2, mySide: null }),
+      waiting,
+    ]);
+    await load(
+      tournament({
+        status: 'RUNNING',
+        roundCount: 1,
+        currentRound: round1,
+        participants: [participant(ANNA)],
+        config: { ...tournament().config, tableCount: 2 },
+      }),
+      [],
+      [waiting],
+    );
+
+    expect(text()).toContain('Du bist in der nächsten Welle dran (Platz 1 in der Warteschlange).');
+  });
+
+  it('gibt der Spielkarte Tor-Limit und Spielzeit des Turniers mit', async () => {
+    await load(
+      tournament({ status: 'RUNNING', roundCount: 1, participants: [participant(ANNA)] }),
+      [],
+      [match({ permissions: { canEnterResult: true, canConfirm: false, canReject: false, canDecide: false } })],
+    );
+
+    expect(text()).toContain('Gespielt wird bis 10 Tore oder 5 Minuten.');
+  });
+
+  it('zeigt die geplante Rundenzahl', async () => {
+    await load(
+      tournament({ status: 'RUNNING', roundCount: 2, config: { ...tournament().config, plannedRounds: 8 } }),
+      [],
+    );
+
+    expect(text()).toContain('Runde 2 von 8');
   });
 
   it('verbindet sich für das Turnier der Seite und zeigt, ob die Live-Verbindung steht', async () => {

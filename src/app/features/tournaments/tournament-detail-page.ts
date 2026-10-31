@@ -14,10 +14,12 @@ import { Match, ParticipantStatus, ResultRequest } from '../../api/models';
 import { AuthService } from '../../core/auth/auth.service';
 import { liveReload } from '../../core/events/live-reload';
 import { PARTICIPANT_STATUS_LABEL, TOURNAMENT_STATUS_LABEL } from '../../shared/labels';
+import { QueueInfo, queueInfo } from '../../shared/queue';
 import { LiveBadge } from '../../shared/live-badge';
 import { errorMessage } from '../../shared/problem';
 import { MatchCard } from './match-card';
 import { RegistrationAction, RegistrationCard } from './registration-card';
+import { TablesOverview } from './tables-overview';
 
 /**
  * Ein Turnier aus Sicht des Spielers: Anmeldung, das eigene Spiel (mit Ergebnis eintragen und bestätigen) und die
@@ -35,6 +37,7 @@ import { RegistrationAction, RegistrationCard } from './registration-card';
     LiveBadge,
     MatchCard,
     RegistrationCard,
+    TablesOverview,
   ],
   templateUrl: './tournament-detail-page.html',
   styleUrl: './tournament-detail-page.scss',
@@ -75,6 +78,25 @@ export class TournamentDetailPage {
       : undefined,
   );
 
+  /** Tor-Limit und Spielzeit des Turniers für die Spielkarten. */
+  protected readonly rules = computed(() => {
+    if (!this.data.hasValue()) {
+      return null;
+    }
+    const { goalLimit, matchMinutes } = this.data.value().tournament.config;
+    return { goalLimit, matchMinutes };
+  });
+
+  /** Alle Matches der aktuellen Runde, für Tische und Warteschlange. */
+  protected readonly roundMatches = computed(() =>
+    this.data.hasValue() ? (this.data.value().tournament.currentRound?.matches ?? []) : [],
+  );
+
+  /** Der eigene Eintrag in der Rangliste, undefined ohne Teilnahme. */
+  protected readonly myRank = computed(() =>
+    this.data.hasValue() ? this.data.value().ranking.find((entry) => entry.player.id === this.playerId()) : undefined,
+  );
+
   /** Die eigenen Spiele der neuesten Runde und die davor, jeweils nach Auslosung sortiert. */
   protected readonly matches = computed(() => {
     const all = this.data.hasValue() ? [...this.data.value().matches] : [];
@@ -90,6 +112,15 @@ export class TournamentDetailPage {
   /** Anzeigetext für den Status eines Spielers (in der Tabelle sind die Zeilen untypisiert, daher als Methode). */
   protected participantStatusLabel(status: ParticipantStatus): string {
     return PARTICIPANT_STATUS_LABEL[status];
+  }
+
+  /** Platz in der Warteschlange für ein wartendes Match der aktuellen Runde. */
+  protected queueFor(match: Match): QueueInfo | null {
+    if (!this.data.hasValue()) {
+      return null;
+    }
+    const { currentRound, config } = this.data.value().tournament;
+    return currentRound?.number === match.round ? queueInfo(match, currentRound.matches, config.tableCount) : null;
   }
 
   protected isMe(entry: { player: { id: string } }): boolean {

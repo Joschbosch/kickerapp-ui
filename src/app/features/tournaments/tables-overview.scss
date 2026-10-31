@@ -1,0 +1,74 @@
+:host {
+  display: block;
+}
+
+h3 {
+  font: var(--mat-sys-title-medium);
+  margin: 20px 0 8px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.progress,
+.empty {
+  margin: 0 0 8px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.tables,
+.queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.tables {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-medium);
+
+  &.mine {
+    border-color: var(--mat-sys-primary);
+    background: var(--mat-sys-primary-container);
+    color: var(--mat-sys-on-primary-container);
+  }
+}
+
+.table {
+  font: var(--mat-sys-title-small);
+}
+
+.teams {
+  flex: 1 1 100%;
+}
+
+.queue .teams {
+  flex: 1 1 0;
+}
+
+.versus {
+  color: var(--mat-sys-on-surface-variant);
+  font: var(--mat-sys-label-small);
+  text-transform: uppercase;
+}
+
+.mine .versus {
+  color: inherit;
+}
+
+.tag {
+  padding: 0 8px;
+  border-radius: 10px;
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+  font: var(--mat-sys-label-small);
+}

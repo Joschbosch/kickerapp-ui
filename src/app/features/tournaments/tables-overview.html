@@ -1,0 +1,34 @@
+<p class="progress">
+  {{ played() }} von {{ matches().length }} Spielen gespielt ·
+  <a [routerLink]="['/anzeige', tournamentId()]">Große Anzeige</a>
+</p>
+
+@if (onTable().length === 0) {
+  <p class="empty">Alle Tische sind frei, die Ergebnisse werden noch bestätigt.</p>
+} @else {
+  <ul class="tables" aria-label="Tische">
+    @for (match of onTable(); track match.id) {
+      <li [class.mine]="match.mySide !== null">
+        <span class="table">Tisch {{ match.table }}</span>
+        @if (match.mySide !== null) {
+          <span class="tag">dein Spiel</span>
+        }
+        <span class="teams">{{ team(match.teamA) }} <span class="versus">gegen</span> {{ team(match.teamB) }}</span>
+      </li>
+    }
+  </ul>
+}
+
+@if (queued().length > 0) {
+  <h3>Als Nächstes</h3>
+  <ol class="queue" aria-label="Warteschlange">
+    @for (match of queued(); track match.id) {
+      <li [class.mine]="match.mySide !== null">
+        <span class="teams">{{ team(match.teamA) }} <span class="versus">gegen</span> {{ team(match.teamB) }}</span>
+        @if (match.mySide !== null) {
+          <span class="tag">dein Spiel</span>
+        }
+      </li>
+    }
+  </ol>
+}

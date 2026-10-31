@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -8,7 +8,9 @@ import { MatInputModule } from '@angular/material/input';
 
 import { Match, ResultRequest, Team } from '../../api/models';
 import { MATCH_STATUS_LABEL } from '../../shared/labels';
+import { QueueInfo, queueText } from '../../shared/queue';
 import { slotLabel } from '../../shared/slots';
+import { MatchTimer } from './match-timer';
 
 /**
  * Ein Match aus Sicht des angemeldeten Spielers: das eigene Team steht links, dazu kommt, was er jetzt tun darf
@@ -16,7 +18,15 @@ import { slotLabel } from '../../shared/slots';
  */
 @Component({
   selector: 'app-match-card',
-  imports: [ReactiveFormsModule, MatButtonModule, MatCardModule, MatFormFieldModule, MatIconModule, MatInputModule],
+  imports: [
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatchTimer,
+  ],
   templateUrl: './match-card.html',
   styleUrl: './match-card.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -29,17 +39,28 @@ export class MatchCard {
   readonly playerId = input.required<string>();
   /** Solange ein Aufruf läuft, sind die Schaltflächen gesperrt. */
   readonly busy = input(false);
+  /** Die Regeln des Turniers: Tor-Limit und Spielzeit. Ohne Angabe gibt es keine Hinweise und keine Prüfung. */
+  readonly rules = input<{ goalLimit: number; matchMinutes: number } | null>(null);
+  /** Platz in der Warteschlange, wenn das Match wartet. */
+  readonly queue = input<QueueInfo | null>(null);
 
   readonly submitResult = output<ResultRequest>();
   readonly confirm = output<void>();
   readonly reject = output<void>();
 
   protected readonly statusLabel = MATCH_STATUS_LABEL;
+  protected readonly queueText = queueText;
   protected readonly entering = signal(false);
 
+  /** Kein Team darf mehr Tore haben als das Limit. Alles Weitere prüft das Backend. */
+  private readonly belowLimit = (control: AbstractControl): ValidationErrors | null => {
+    const limit = this.rules()?.goalLimit;
+    return limit !== undefined && control.value > limit ? { limit: { max: limit } } : null;
+  };
+
   protected readonly form = this.formBuilder.nonNullable.group({
-    mine: [0, [Validators.required, Validators.min(0)]],
-    opponent: [0, [Validators.required, Validators.min(0)]],
+    mine: [0, [Validators.required, Validators.min(0), this.belowLimit]],
+    opponent: [0, [Validators.required, Validators.min(0), this.belowLimit]],
   });
 
   /** Das Team des Spielers steht immer links. Ohne Seite (z. B. Admin) bleibt es bei A gegen B. */

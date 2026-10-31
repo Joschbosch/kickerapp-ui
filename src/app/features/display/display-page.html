@@ -68,7 +68,10 @@
       } @else if (matches().length === 0) {
         <p class="empty">Die nächste Runde wird noch ausgelost.</p>
       } @else {
-        <p class="progress">{{ played() }} von {{ matches().length }} Spielen gespielt</p>
+        <p class="progress">
+          {{ played() }} von {{ matches().length }} Spielen gespielt · bis {{ tournament.config.goalLimit }} Tore oder
+          {{ tournament.config.matchMinutes }} Minuten
+        </p>
 
         @if (onTable().length === 0) {
           <p class="empty">Alle Tische sind frei, die Ergebnisse werden noch bestätigt.</p>

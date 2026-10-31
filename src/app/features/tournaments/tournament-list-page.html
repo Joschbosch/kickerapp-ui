@@ -33,6 +33,9 @@
               </mat-card-header>
               <mat-card-content>
                 <span class="chip" [attr.data-status]="tournament.status">{{ statusLabel[tournament.status] }}</span>
+                @if (registered().has(tournament.id)) {
+                  <span class="chip mine">{{ tournament.status === 'FINISHED' ? 'Teilgenommen' : 'Angemeldet' }}</span>
+                }
                 <span class="meta">
                   <mat-icon aria-hidden="true">groups</mat-icon>
                   {{ tournament.participantCount }} Spieler

@@ -65,6 +65,11 @@ mat-card-content {
     background: var(--mat-sys-surface-container-highest);
     color: var(--mat-sys-on-surface-variant);
   }
+
+  &.mine {
+    background: var(--mat-sys-tertiary-container);
+    color: var(--mat-sys-on-tertiary-container);
+  }
 }
 
 .message {

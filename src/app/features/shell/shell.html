@@ -15,6 +15,16 @@
       }
     </button>
     <mat-menu #userMenu="matMenu">
+      @if (alerts.canAskPermission()) {
+        <button mat-menu-item type="button" (click)="alerts.enableSystemNotifications()">
+          <mat-icon aria-hidden="true">notifications</mat-icon>
+          <span>Benachrichtigungen erlauben</span>
+        </button>
+      }
+      <button mat-menu-item type="button" (click)="alerts.setSound(!alerts.soundOn())">
+        <mat-icon aria-hidden="true">{{ alerts.soundOn() ? 'volume_up' : 'volume_off' }}</mat-icon>
+        <span>{{ alerts.soundOn() ? 'Ton bei „Du bist dran“ ausschalten' : 'Ton bei „Du bist dran“ einschalten' }}</span>
+      </button>
       <button mat-menu-item type="button" (click)="logout()">
         <mat-icon aria-hidden="true">logout</mat-icon>
         <span>Abmelden</span>
@@ -22,6 +32,8 @@
     </mat-menu>
   }
 </mat-toolbar>
+
+<app-turn-banner />
 
 <main class="content">
   <router-outlet />

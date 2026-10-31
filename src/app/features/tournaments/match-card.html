@@ -46,7 +46,7 @@
     @if (score(); as s) {
       <p class="note">
         @if (s.confirmed) {
-          Ergebnis bestätigt.
+          {{ m.result?.source === 'ADMIN' ? 'Ergebnis vom Turnierleiter festgelegt.' : 'Ergebnis bestätigt.' }}
         } @else if (m.permissions.canConfirm) {
           {{ enteredBy() }} hat {{ s.mine }} : {{ s.opponent }} eingetragen (dein Team zuerst). Stimmt das?
         } @else if (m.status === 'DISPUTED') {
@@ -57,15 +57,30 @@
       </p>
     }
 
+    @if (queue(); as info) {
+      <p class="note">{{ queueText(info) }}</p>
+    }
+
+    @if (m.status === 'ON_TABLE' && rules(); as r) {
+      <p class="note">Gespielt wird bis {{ r.goalLimit }} Tore oder {{ r.matchMinutes }} Minuten.</p>
+      <app-match-timer [matchId]="m.id" [minutes]="r.matchMinutes" />
+    }
+
     @if (entering()) {
       <form [formGroup]="form" (ngSubmit)="send()" class="entry">
         <mat-form-field appearance="outline">
           <mat-label>Tore mein Team</mat-label>
-          <input matInput type="number" inputmode="numeric" min="0" step="1" formControlName="mine" />
+          <input matInput type="number" inputmode="numeric" min="0" [attr.max]="rules()?.goalLimit" step="1" formControlName="mine" />
+          @if (form.controls.mine.errors?.['limit']; as limit) {
+            <mat-error>Höchstens {{ limit.max }} Tore.</mat-error>
+          }
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Tore Gegner</mat-label>
-          <input matInput type="number" inputmode="numeric" min="0" step="1" formControlName="opponent" />
+          <input matInput type="number" inputmode="numeric" min="0" [attr.max]="rules()?.goalLimit" step="1" formControlName="opponent" />
+          @if (form.controls.opponent.errors?.['limit']; as limit) {
+            <mat-error>Höchstens {{ limit.max }} Tore.</mat-error>
+          }
         </mat-form-field>
         <div class="actions">
           <button mat-flat-button type="submit" [disabled]="form.invalid || busy()">Ergebnis senden</button>

@@ -36,6 +36,9 @@
       {{ tournament.date | date: 'fullDate' }} · {{ tournamentStatus[tournament.status] }}
       @if (tournament.roundCount > 0) {
         · Runde {{ tournament.roundCount }}
+        @if (tournament.config.plannedRounds) {
+          von {{ tournament.config.plannedRounds }}
+        }
       }
     </p>
   </header>
@@ -48,6 +51,15 @@
   />
 
   @if (participant() !== undefined && tournament.status !== 'PLANNED') {
+    @if (myRank(); as mine) {
+      <section class="summary" aria-label="Dein Stand">
+        <strong>Platz {{ mine.rank }} von {{ ranking.length }}</strong>
+        <span>{{ mine.points }} Punkte</span>
+        <span>{{ mine.matchesPlayed }} Spiele</span>
+        <span>Tore {{ mine.goalsFor }}:{{ mine.goalsAgainst }} ({{ mine.goalDifference > 0 ? '+' : '' }}{{ mine.goalDifference }})</span>
+      </section>
+    }
+
     <section aria-labelledby="matches-title">
       <h2 id="matches-title">Mein Spiel</h2>
       @if (matches().current.length === 0) {
@@ -63,6 +75,8 @@
                 [match]="match"
                 [playerId]="playerId()"
                 [busy]="busy()"
+                [rules]="rules()"
+                [queue]="queueFor(match)"
                 (submitResult)="submitResult(match, $event)"
                 (confirm)="confirmResult(match)"
                 (reject)="rejectResult(match)"
@@ -81,6 +95,8 @@
                 [match]="match"
                 [playerId]="playerId()"
                 [busy]="busy()"
+                [rules]="rules()"
+                [queue]="queueFor(match)"
                 (submitResult)="submitResult(match, $event)"
                 (confirm)="confirmResult(match)"
                 (reject)="rejectResult(match)"
@@ -89,6 +105,13 @@
           }
         </ul>
       }
+    </section>
+  }
+
+  @if (tournament.status === 'RUNNING' && roundMatches().length > 0) {
+    <section aria-labelledby="tables-title">
+      <h2 id="tables-title">Tische</h2>
+      <app-tables-overview [tournamentId]="tournament.id" [matches]="roundMatches()" [playerId]="playerId()" />
     </section>
   }
 

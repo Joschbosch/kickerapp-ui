@@ -161,6 +161,88 @@ describe('MatchCard', () => {
     expect(element().querySelectorAll('button').length).toBe(0);
   });
 
+  it('sagt einem wartenden Spieler, in welcher Welle er drankommt', async () => {
+    fixture.componentRef.setInput('queue', { position: 3, wave: 2 });
+    await show(buildMatch({ status: 'QUEUED', table: null }));
+
+    expect(text()).toContain('Du bist in der übernächsten Welle dran (Platz 3 in der Warteschlange).');
+  });
+
+  it('nennt am Tisch Tor-Limit und Spielzeit und bietet den Zähler an', async () => {
+    fixture.componentRef.setInput('rules', { goalLimit: 10, matchMinutes: 5 });
+    await show(buildMatch());
+
+    expect(text()).toContain('Gespielt wird bis 10 Tore oder 5 Minuten.');
+    expect(element().querySelector('app-match-timer')!.textContent).toContain('Spielzeit starten (5 Min.)');
+  });
+
+  it('zeigt Limit und Zähler nicht, solange das Match nicht am Tisch ist', async () => {
+    fixture.componentRef.setInput('rules', { goalLimit: 10, matchMinutes: 5 });
+    await show(buildMatch({ status: 'QUEUED', table: null }));
+
+    expect(text()).not.toContain('Gespielt wird bis');
+    expect(element().querySelector('app-match-timer')).toBeNull();
+  });
+
+  it('zeigt ohne Regeln weder Hinweis noch Zähler', async () => {
+    await show(buildMatch());
+
+    expect(text()).not.toContain('Gespielt wird bis');
+    expect(element().querySelector('app-match-timer')).toBeNull();
+  });
+
+  it('sperrt Ergebnisse über dem Tor-Limit und sagt, wie viel erlaubt ist', async () => {
+    fixture.componentRef.setInput('rules', { goalLimit: 10, matchMinutes: 5 });
+    await show(buildMatch({ permissions: { canEnterResult: true, canConfirm: false, canReject: false, canDecide: false } }));
+    const sent: ResultRequest[] = [];
+    fixture.componentInstance.submitResult.subscribe((result) => sent.push(result));
+
+    button('Ergebnis eintragen')!.click();
+    await fixture.whenStable();
+    const [mine, opponent] = Array.from(element().querySelectorAll('input'));
+    mine.value = '11';
+    mine.dispatchEvent(new Event('input'));
+    mine.dispatchEvent(new Event('blur'));
+    opponent.value = '4';
+    opponent.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    expect(button('Ergebnis senden')!.disabled).toBe(true);
+    expect(text()).toContain('Höchstens 10 Tore.');
+    element().querySelector('form')!.dispatchEvent(new Event('submit'));
+    expect(sent).toEqual([]);
+
+    mine.value = '10';
+    mine.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    expect(button('Ergebnis senden')!.disabled).toBe(false);
+  });
+
+  it('prüft ohne Regeln kein Limit', async () => {
+    await show(buildMatch({ permissions: { canEnterResult: true, canConfirm: false, canReject: false, canDecide: false } }));
+
+    button('Ergebnis eintragen')!.click();
+    await fixture.whenStable();
+    const [mine] = Array.from(element().querySelectorAll('input'));
+    mine.value = '50';
+    mine.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    expect(button('Ergebnis senden')!.disabled).toBe(false);
+  });
+
+  it('sagt, wenn der Turnierleiter das Ergebnis festgelegt hat', async () => {
+    await show(
+      buildMatch({
+        status: 'CONFIRMED',
+        result: { goalsA: 10, goalsB: 9, confirmed: true, enteredBy: null, enteredSide: null, source: 'ADMIN' },
+      }),
+    );
+
+    expect(text()).toContain('Ergebnis vom Turnierleiter festgelegt.');
+    expect(text()).not.toContain('Ergebnis bestätigt.');
+  });
+
   it('schließt das Formular, sobald sich der Stand des Matches ändert', async () => {
     const entering = buildMatch({ permissions: { canEnterResult: true, canConfirm: false, canReject: false, canDecide: false } });
     await show(entering);

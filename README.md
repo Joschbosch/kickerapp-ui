@@ -3,8 +3,16 @@
 Angular-Oberfläche für das [Kickertool](https://github.com/Joschbosch/kickerapp) (Kicker-Turnierverwaltung). Eine
 responsive App, installierbar als PWA: Handy für Spieler, Desktop-Web für Admin und Spieler.
 
-Stand: Anmeldung, Turnierliste und die Spieler-Ansicht eines Turniers (zum Turnier anmelden, pausieren, ausscheiden,
-mein Spiel mit Tisch und Teams, Ergebnis eintragen, bestätigen oder ablehnen, Rangliste).
+Stand: Anmeldung, Turnierliste (markiert, wo man angemeldet ist, lädt sich alle 30 Sekunden neu) und die Spieler-Ansicht
+eines Turniers: zum Turnier anmelden, pausieren, ausscheiden, der eigene Stand („Platz 3 von 10“), mein Spiel mit Tisch,
+Partner und Gegnern, Ergebnis eintragen (mit Prüfung gegen das Tor-Limit), bestätigen oder ablehnen, Spielzeit-Zähler am Tisch,
+Platz in der Warteschlange, alle Tische der Runde und die Rangliste.
+
+**„Du bist dran“:** Sobald ein Match des Spielers einem Tisch zugewiesen wird (neue Runde oder die nächste Welle, auch als
+Einspringer), erscheint auf jeder Seite der App ein Hinweis mit Tisch, Partner und Gegnern, dazu Vibration, ein Signalton und, wenn
+die Seite gerade nicht sichtbar ist, eine Systembenachrichtigung. Im Benutzermenü lässt sich der Ton ausschalten und die
+Systembenachrichtigung erlauben. Das funktioniert nur, solange die App im Browser läuft (auch im Hintergrund-Tab), **nicht** bei
+geschlossener App oder gesperrtem Handy: Dafür bräuchte es echtes Web-Push mit Unterstützung im Backend.
 
 Live-Updates: Spieler-Seite, Admin-Seite und Anzeige lösen sich bei jeder Änderung des Turniers von selbst neu (Server-Sent
 Events mit Ticket, `core/events/`). Ein Abzeichen zeigt „Live“, „Verbinde …“ oder „Offline“. Ohne Verbindung fragt die Seite in
@@ -74,6 +82,26 @@ Am Client müssen für die Adresse der UI (hier `https://kicker.example.org`) fr
 - Gültige Weiterleitungs-URI nach dem Abmelden: `https://kicker.example.org/abgemeldet`
 - Web-Origin: `https://kicker.example.org` (für den Austausch des Codes und die Erneuerung)
 - Client öffentlich, PKCE `S256`, Standard-Flow an. Ein Refresh-Token liefert Keycloak dabei mit.
+
+### Test am Handy im lokalen Netz
+
+Das Handy erreicht `localhost` des PCs nicht, alles läuft deshalb über die Adresse des PCs im WLAN (hier `10.0.0.204`):
+
+1. `docker compose up -d` im Backend-Repo (Keycloak, Postgres). Der Aussteller im Token ist die Adresse, unter der der Browser
+   Keycloak aufruft. Das Backend bekommt genau diese: `KICKERTOOL_OIDC_ISSUER_URI=http://10.0.0.204:8180/realms/kickertool`,
+   dazu `KICKERTOOL_CORS_ALLOWED_ORIGINS=http://10.0.0.204:4200,http://localhost:4200`, dann `.\mvnw.cmd -pl kickertool-bootstrap spring-boot:run`.
+   Wechselt der Aussteller (z. B. von `localhost` auf die Adresse), kennt das Backend dieselben Nutzer als neue Spieler: dann
+   eine frische Datenbank nehmen (`KICKERTOOL_DB_URL`).
+2. `public/config.json`: `apiBaseUrl` und `oidc.authority` auf die Adresse des PCs, `authMode` auf `oidc` und
+   `"allowInsecureContext": true` (siehe unten). **Diese Werte nicht committen.**
+3. `npx ng serve --host 0.0.0.0 --allowed-hosts`, am Handy `http://10.0.0.204:4200` öffnen.
+4. Die Windows-Firewall muss die Ports 4200, 8080 und 8180 aus dem lokalen Netz zulassen.
+
+**Warum `allowInsecureContext`:** Der Browser erlaubt `crypto.subtle` (SHA-256 für PKCE) nur über HTTPS oder `localhost`. Am Handy
+über `http://10.0.0.204:4200` fehlt es, die Anmeldung scheitert. Die Option baut ein SHA-256 in JavaScript ein
+(`core/auth/insecure-crypto.ts`). Sie ist standardmäßig aus und gehört nur in Tests im eigenen Netz. Im Betrieb gibt es HTTPS, dann
+ist sie nicht nötig. Browser-Benachrichtigungen (Systembenachrichtigung) gibt es über HTTP ebenfalls nicht, Vibration, Ton und der
+Hinweis in der App gehen.
 
 ## Weiterarbeiten
 

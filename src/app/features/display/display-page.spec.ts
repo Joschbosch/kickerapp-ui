@@ -91,6 +91,12 @@ describe('DisplayPage', () => {
     expect(element().querySelector('.queue')!.textContent).toContain('Gast & Anna Beispiel');
   });
 
+  it('nennt Tor-Limit und Spielzeit der Tische', async () => {
+    await load(running({ currentRound: round(1, [match()]) }));
+
+    expect(text()).toContain('bis 10 Tore oder 5 Minuten');
+  });
+
   it('zeigt „Runde x von y“, wenn die Rundenzahl geplant ist', async () => {
     const config = { ...tournament().config, plannedRounds: 8 };
     await load(running({ config, currentRound: round(1, [match()]) }));
