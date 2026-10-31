@@ -3,8 +3,10 @@
 Angular-Oberfläche für das [Kickertool](https://github.com/Joschbosch/kickerapp) (Kicker-Turnierverwaltung). Eine
 responsive App, installierbar als PWA: Handy für Spieler, Desktop-Web für Admin und Spieler.
 
-Stand: Anmeldung, Turnierliste, Turnier mit Rangliste. Als Nächstes: Spieler-Ansicht (anmelden, mein Spiel, Ergebnis
-eintragen und bestätigen), Admin-Ansicht (Turnier verwalten, Runden, Tabellen-Fenster), Live-Updates, OIDC-Anmeldung.
+Stand: Anmeldung, Turnierliste und die Spieler-Ansicht eines Turniers (zum Turnier anmelden, pausieren, ausscheiden,
+mein Spiel mit Tisch und Teams, Ergebnis eintragen, bestätigen oder ablehnen, Rangliste). Die Seite lädt nach jeder
+Aktion neu und über die Schaltfläche „Aktualisieren“, automatische Aktualisierung (Live-Updates) fehlt noch.
+Als NÃ¤chstes: Live-Updates, Admin-Ansicht (Turnier verwalten, Runden, Tabellen-Fenster), OIDC-Anmeldung.
 
 ## Schnellstart
 

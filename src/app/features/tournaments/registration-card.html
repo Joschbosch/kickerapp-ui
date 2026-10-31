@@ -1,0 +1,63 @@
+@let p = participant();
+@let status = tournamentStatus();
+
+@if (p === undefined) {
+  @if (status !== 'FINISHED') {
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        <p class="text">
+          Du bist noch nicht angemeldet.
+          @if (status === 'RUNNING') {
+            Wenn du jetzt einsteigst, spielst du ab der nächsten Runde mit.
+          }
+        </p>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-flat-button type="button" (click)="emit('register')" [disabled]="busy()">Anmelden</button>
+      </mat-card-actions>
+    </mat-card>
+  }
+} @else {
+  <mat-card appearance="outlined">
+    <mat-card-content>
+      @switch (p.status) {
+        @case ('ACTIVE') {
+          <p class="text"><strong>Du bist dabei.</strong></p>
+        }
+        @case ('PAUSED') {
+          <p class="text"><strong>Du pausierst</strong> und wirst ab der nächsten Runde nicht mehr zugelost.</p>
+        }
+        @case ('WITHDRAWN') {
+          <p class="text"><strong>Du bist ausgeschieden.</strong> Deine bisherigen Punkte bleiben in der Rangliste.</p>
+        }
+      }
+      @if (confirmingWithdraw()) {
+        <p class="text warning" role="alert">
+          Ausscheiden gilt endgültig, du kannst danach nicht wieder einsteigen. Wirklich ausscheiden?
+        </p>
+      }
+    </mat-card-content>
+
+    @if (status !== 'FINISHED' && p.status !== 'WITHDRAWN') {
+      <mat-card-actions>
+        @if (confirmingWithdraw()) {
+          <button mat-flat-button type="button" class="danger" (click)="emit('withdraw')" [disabled]="busy()">
+            Ja, ausscheiden
+          </button>
+          <button mat-button type="button" (click)="confirmingWithdraw.set(false)">Abbrechen</button>
+        } @else if (status === 'PLANNED') {
+          <button mat-stroked-button type="button" (click)="emit('unregister')" [disabled]="busy()">Abmelden</button>
+        } @else {
+          @if (p.status === 'ACTIVE') {
+            <button mat-stroked-button type="button" (click)="emit('pause')" [disabled]="busy()">
+              Ab nächster Runde pausieren
+            </button>
+          } @else {
+            <button mat-flat-button type="button" (click)="emit('resume')" [disabled]="busy()">Wieder einsteigen</button>
+          }
+          <button mat-button type="button" (click)="confirmingWithdraw.set(true)" [disabled]="busy()">Ausscheiden</button>
+        }
+      </mat-card-actions>
+    }
+  </mat-card>
+}

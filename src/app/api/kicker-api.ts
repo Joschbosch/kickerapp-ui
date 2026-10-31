@@ -6,6 +6,7 @@ import { AppConfigService } from '../core/app-config';
 import {
   Match,
   Me,
+  ParticipantStatus,
   RankingEntry,
   ResultRequest,
   Round,
@@ -50,6 +51,18 @@ export class KickerApi {
   /** Meldet den angemeldeten Spieler zum Turnier an. Ohne Body, die API erkennt den Spieler am Token. */
   register(tournamentId: string): Observable<Tournament> {
     return this.http.post<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/participants`), {});
+  }
+
+  /** Meldet den angemeldeten Spieler ab (nur solange das Turnier geplant ist). */
+  unregister(tournamentId: string): Observable<Tournament> {
+    return this.http.delete<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/participants/me`));
+  }
+
+  /** Pausieren (ab der nächsten Runde), wieder einsteigen oder ausscheiden (endgültig). */
+  changeMyStatus(tournamentId: string, status: ParticipantStatus): Observable<Tournament> {
+    return this.http.put<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/participants/me/status`), {
+      status,
+    });
   }
 
   submitResult(tournamentId: string, matchId: string, result: ResultRequest): Observable<Match> {

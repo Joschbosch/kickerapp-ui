@@ -1,10 +1,15 @@
-<a mat-button routerLink="/turniere" class="back">
-  <mat-icon aria-hidden="true">arrow_back</mat-icon>
-  Alle Turniere
-</a>
+<div class="toolbar">
+  <a mat-button routerLink="/turniere" class="back">
+    <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    Alle Turniere
+  </a>
+  <button mat-icon-button type="button" aria-label="Aktualisieren" (click)="data.reload()" [disabled]="data.isLoading()">
+    <mat-icon aria-hidden="true">refresh</mat-icon>
+  </button>
+</div>
 
-@if (data.isLoading()) {
-  <mat-progress-bar mode="indeterminate" aria-label="Turnier wird geladen" />
+@if (data.isLoading() || busy()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Wird geladen" />
 }
 
 @if (data.error()) {
@@ -26,6 +31,58 @@
     </p>
   </header>
 
+  <app-registration-card
+    [tournamentStatus]="tournament.status"
+    [participant]="participant()"
+    [busy]="busy()"
+    (action)="onRegistration($event)"
+  />
+
+  @if (participant() !== undefined && tournament.status !== 'PLANNED') {
+    <section aria-labelledby="matches-title">
+      <h2 id="matches-title">Mein Spiel</h2>
+      @if (matches().current.length === 0) {
+        <p class="message">Du hast noch kein Spiel.</p>
+      } @else {
+        @if (matches().latestRound < tournament.roundCount) {
+          <p class="message">In Runde {{ tournament.roundCount }} hast du kein Spiel.</p>
+        }
+        <ul class="matches">
+          @for (match of matches().current; track match.id) {
+            <li>
+              <app-match-card
+                [match]="match"
+                [playerId]="playerId()"
+                [busy]="busy()"
+                (submitResult)="submitResult(match, $event)"
+                (confirm)="confirmResult(match)"
+                (reject)="rejectResult(match)"
+              />
+            </li>
+          }
+        </ul>
+      }
+
+      @if (matches().earlier.length > 0) {
+        <h3>Bisherige Spiele</h3>
+        <ul class="matches">
+          @for (match of matches().earlier; track match.id) {
+            <li>
+              <app-match-card
+                [match]="match"
+                [playerId]="playerId()"
+                [busy]="busy()"
+                (submitResult)="submitResult(match, $event)"
+                (confirm)="confirmResult(match)"
+                (reject)="rejectResult(match)"
+              />
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+
   <section aria-labelledby="ranking-title">
     <h2 id="ranking-title">Rangliste</h2>
     @if (ranking.length === 0) {
@@ -41,6 +98,9 @@
             <th mat-header-cell *matHeaderCellDef>Spieler</th>
             <td mat-cell *matCellDef="let entry">
               {{ entry.player.displayName }}
+              @if (isMe(entry)) {
+                <span class="status me-tag">du</span>
+              }
               @if (entry.status !== 'ACTIVE') {
                 <span class="status">{{ participantStatusLabel(entry.status) }}</span>
               }
@@ -76,7 +136,7 @@
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="columns"></tr>
-          <tr mat-row *matRowDef="let row; columns: columns"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns" [class.me]="isMe(row)"></tr>
         </table>
       </div>
     }

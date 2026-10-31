@@ -1,3 +1,9 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .back {
   margin-left: -8px;
 }
@@ -12,10 +18,29 @@ h2 {
   margin: 24px 0 8px;
 }
 
+h3 {
+  font: var(--mat-sys-title-medium);
+  margin: 24px 0 8px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+app-registration-card {
+  margin-top: 16px;
+}
+
 .subtitle,
 .message {
   margin: 0;
   color: var(--mat-sys-on-surface-variant);
+}
+
+.matches {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
 }
 
 .table-wrap {
@@ -25,6 +50,10 @@ h2 {
 table {
   width: 100%;
   background: transparent;
+}
+
+tr.me {
+  background: var(--mat-sys-secondary-container);
 }
 
 .strong {
@@ -38,6 +67,11 @@ table {
   background: var(--mat-sys-surface-container-highest);
   color: var(--mat-sys-on-surface-variant);
   font: var(--mat-sys-label-small);
+}
+
+.me-tag {
+  background: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
 }
 
 // Auf dem Handy nur Rang, Spieler, Punkte und Differenz, der Rest passt nicht

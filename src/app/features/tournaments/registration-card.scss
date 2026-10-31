@@ -1,0 +1,23 @@
+:host {
+  display: block;
+}
+
+.text {
+  margin: 0;
+  padding-top: 8px;
+}
+
+.warning {
+  color: var(--mat-sys-error);
+}
+
+.danger {
+  --mat-button-filled-container-color: var(--mat-sys-error);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+}
+
+mat-card-actions {
+  padding: 0 16px 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}

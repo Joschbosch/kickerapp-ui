@@ -1,0 +1,91 @@
+@let m = match();
+
+<mat-card appearance="outlined" [attr.data-status]="m.status">
+  <mat-card-header>
+    <mat-card-title>
+      @switch (m.status) {
+        @case ('ON_TABLE') {
+          Tisch {{ m.table }} – jetzt spielen
+        }
+        @case ('QUEUED') {
+          Wartet auf einen freien Tisch
+        }
+        @default {
+          Tisch {{ m.table }}
+        }
+      }
+    </mat-card-title>
+    <mat-card-subtitle>
+      Runde {{ m.round }} · <span class="chip" [attr.data-status]="m.status">{{ statusLabel[m.status] }}</span>
+    </mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content>
+    <div class="teams">
+      <div class="team mine">
+        <span class="caption">Mein Team</span>
+        @for (name of myTeam(); track $index) {
+          <span>{{ name }}</span>
+        }
+      </div>
+      <div class="score" aria-label="Ergebnis">
+        @if (score(); as s) {
+          <strong>{{ s.mine }} : {{ s.opponent }}</strong>
+        } @else {
+          <span aria-hidden="true">gegen</span>
+        }
+      </div>
+      <div class="team">
+        <span class="caption">Gegner</span>
+        @for (name of opponentTeam(); track $index) {
+          <span>{{ name }}</span>
+        }
+      </div>
+    </div>
+
+    @if (score(); as s) {
+      <p class="note">
+        @if (s.confirmed) {
+          Ergebnis bestätigt.
+        } @else if (m.permissions.canConfirm) {
+          {{ enteredBy() }} hat {{ s.mine }} : {{ s.opponent }} eingetragen (dein Team zuerst). Stimmt das?
+        } @else if (m.status === 'DISPUTED') {
+          Das Ergebnis wurde abgelehnt, die Turnierleitung entscheidet.
+        } @else {
+          Wartet auf die Bestätigung durch das Gegnerteam.
+        }
+      </p>
+    }
+
+    @if (entering()) {
+      <form [formGroup]="form" (ngSubmit)="send()" class="entry">
+        <mat-form-field appearance="outline">
+          <mat-label>Tore mein Team</mat-label>
+          <input matInput type="number" inputmode="numeric" min="0" step="1" formControlName="mine" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Tore Gegner</mat-label>
+          <input matInput type="number" inputmode="numeric" min="0" step="1" formControlName="opponent" />
+        </mat-form-field>
+        <div class="actions">
+          <button mat-flat-button type="submit" [disabled]="form.invalid || busy()">Ergebnis senden</button>
+          <button mat-button type="button" (click)="entering.set(false)" [disabled]="busy()">Abbrechen</button>
+        </div>
+      </form>
+    }
+  </mat-card-content>
+
+  @if (!entering() && (m.permissions.canEnterResult || m.permissions.canConfirm || m.permissions.canReject)) {
+    <mat-card-actions>
+      @if (m.permissions.canEnterResult) {
+        <button mat-flat-button type="button" (click)="openForm()" [disabled]="busy()">Ergebnis eintragen</button>
+      }
+      @if (m.permissions.canConfirm) {
+        <button mat-flat-button type="button" (click)="confirm.emit()" [disabled]="busy()">Bestätigen</button>
+      }
+      @if (m.permissions.canReject) {
+        <button mat-stroked-button type="button" (click)="reject.emit()" [disabled]="busy()">Ablehnen</button>
+      }
+    </mat-card-actions>
+  }
+</mat-card>
