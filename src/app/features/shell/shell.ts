@@ -19,8 +19,10 @@ export class Shell {
   protected readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  protected logout(): void {
-    this.auth.logout();
-    void this.router.navigate(['/login']);
+  protected async logout(): Promise<void> {
+    // Mit OIDC-Provider verlässt der Browser die Seite, dann ist hier nichts mehr zu tun
+    if (await this.auth.logout()) {
+      await this.router.navigate(['/login']);
+    }
   }
 }

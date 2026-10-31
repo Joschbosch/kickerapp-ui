@@ -3,29 +3,45 @@
     <mat-card-header>
       <mat-icon mat-card-avatar aria-hidden="true">sports_soccer</mat-icon>
       <mat-card-title>Kickertool</mat-card-title>
-      <mat-card-subtitle>Bitte anmelden</mat-card-subtitle>
+      <mat-card-subtitle>{{ abgemeldet() ? 'Abgemeldet' : 'Bitte anmelden' }}</mat-card-subtitle>
     </mat-card-header>
 
     <mat-card-content>
-      <form [formGroup]="form" (ngSubmit)="submit()" class="form">
-        <mat-form-field appearance="outline">
-          <mat-label>Benutzername</mat-label>
-          <input matInput formControlName="username" autocomplete="username" autocapitalize="none" required />
-        </mat-form-field>
+      @if (provider) {
+        <div class="form">
+          @if (abgemeldet()) {
+            <p class="text">Du bist abgemeldet.</p>
+          } @else if (busy()) {
+            <p class="text">Du wirst zur Anmeldung weitergeleitet …</p>
+          }
 
-        <mat-form-field appearance="outline">
-          <mat-label>Passwort</mat-label>
-          <input matInput type="password" formControlName="password" autocomplete="current-password" required />
-        </mat-form-field>
+          @if (error(); as message) {
+            <p class="error" role="alert">{{ message }}</p>
+          }
 
-        @if (error(); as message) {
-          <p class="error" role="alert">{{ message }}</p>
-        }
+          <button mat-flat-button type="button" (click)="signInWithProvider()" [disabled]="busy()">Anmelden</button>
+        </div>
+      } @else {
+        <form [formGroup]="form" (ngSubmit)="submit()" class="form">
+          <mat-form-field appearance="outline">
+            <mat-label>Benutzername</mat-label>
+            <input matInput formControlName="username" autocomplete="username" autocapitalize="none" required />
+          </mat-form-field>
 
-        <button mat-flat-button type="submit" [disabled]="form.invalid || busy()">
-          {{ busy() ? 'Melde an …' : 'Anmelden' }}
-        </button>
-      </form>
+          <mat-form-field appearance="outline">
+            <mat-label>Passwort</mat-label>
+            <input matInput type="password" formControlName="password" autocomplete="current-password" required />
+          </mat-form-field>
+
+          @if (error(); as message) {
+            <p class="error" role="alert">{{ message }}</p>
+          }
+
+          <button mat-flat-button type="submit" [disabled]="form.invalid || busy()">
+            {{ busy() ? 'Melde an …' : 'Anmelden' }}
+          </button>
+        </form>
+      }
 
       @if (developmentMode) {
         <p class="hint">

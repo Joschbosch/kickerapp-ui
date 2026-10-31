@@ -9,6 +9,19 @@ export const routes: Routes = [
     loadComponent: () => import('./features/login/login-page').then((m) => m.LoginPage),
   },
   {
+    // Hierhin kommt der Browser vom OIDC-Provider zurück
+    path: 'auth/callback',
+    title: 'Anmelden – Kickertool',
+    loadComponent: () => import('./features/login/callback-page').then((m) => m.CallbackPage),
+  },
+  {
+    // Ziel nach dem Abmelden beim OIDC-Provider
+    path: 'abgemeldet',
+    title: 'Abgemeldet – Kickertool',
+    data: { abgemeldet: true },
+    loadComponent: () => import('./features/login/login-page').then((m) => m.LoginPage),
+  },
+  {
     // Ohne Menü für weitere Bildschirme, gehört deshalb nicht zum Rahmen
     path: 'anzeige/:id',
     title: 'Anzeige – Kickertool',

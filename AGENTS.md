@@ -49,9 +49,23 @@ Diese Datei gilt für alle Assistenten (Codex, Claude Code, ...). Eigenheiten ei
 
 ## Anmeldung
 - Entwicklung (`authMode: password`): Formular, Benutzername und Passwort gehen an `/mock-oidc/token` des lokalen Backends.
-- Produktion (`authMode: oidc`, noch nicht umgesetzt): OIDC mit Authorization Code und PKCE, Client `kickertool-app`
-  (öffentlich, kein Secret). Beides bleibt hinter `AuthService`.
-- Jeder Aufruf schickt `Authorization: Bearer <access_token>` (Interceptor). Bei 401 wird abgemeldet.
+- Produktion (`authMode: oidc`): OIDC mit Authorization Code und PKCE, Client `kickertool-app` (öffentlich, kein Secret),
+  umgesetzt mit `oidc-client-ts` hinter `core/auth/oidc-session.ts` (`OidcSession`, in Tests ersetzen). Beides bleibt hinter
+  `AuthService`. Die Bibliothek nur dort anfassen.
+- Ablauf: Die Anmeldeseite leitet im Modus `oidc` selbst zum Provider (`startLogin`), `/auth/callback` (`CallbackPage`) schließt ab
+  (`completeLogin`) und geht zur Seite aus dem `state` weiter, `/abgemeldet` ist das Ziel nach dem Abmelden (keine automatische
+  Weiterleitung). Ein Schutz in `safe-target.ts` verhindert eine Schleife App → Provider → App, wenn das Backend ein Token ablehnt.
+- Token-Erneuerung: `automaticSilentRenew` erneuert eine Minute vor Ablauf per Refresh-Token (kein Iframe, keine Weiterleitung).
+  `OidcSession.watch` meldet das neue Token an `AuthService`, der Interceptor hängt immer das aktuelle an. Bei Netzfehlern wird
+  alle 15 s wiederholt, bei einer Ablehnung durch den Provider nicht. Ist das Token abgelaufen, führt das nächste 401 zur
+  Anmeldeseite, die ohne Eingabe zurückkehrt, solange die Sitzung beim Provider läuft.
+- Das Token liegt im Modus `oidc` nur im Speicher von `AuthService` und im Speicher der Bibliothek (`sessionStorage`, Schlüssel
+  `oidc.user:…`), nie unter `kickertool.token` (das ist der Passwort-Modus).
+- Jeder Aufruf schickt `Authorization: Bearer <access_token>` (Interceptor). Bei 401 wird lokal vergessen (`expire()`) und zur
+  Anmeldung gewechselt, mit der aktuellen Seite als `weiter` (so kehrt z. B. die Anzeige am Beamer dorthin zurück). Ausgenommen
+  ist `/api/me`: Das 401 beim Laden des Profils behandelt der Guard selbst, ein zweiter Wechsel würde dessen Adresse überholen. `logout()` meldet mit Provider auch dort ab und gibt zurück, ob die App selbst zur Anmeldeseite wechselt.
+- In Tests den Modus mit `loadConfig({ authMode: 'oidc' })` (`testing/config.ts`) setzen und `OIDC_SESSION` durch
+  `fakeOidcSession()` (`testing/oidc.ts`) ersetzen.
 - Der Admin-Status kommt aus `GET /api/me` (`admin`), durchgesetzt wird er im Backend.
 - Tokens und Passwörter nie ins Repo, in Logs oder in URLs schreiben.
 

@@ -54,8 +54,35 @@ describe('authInterceptor', () => {
       .flush({}, { status: 401, statusText: 'Unauthorized' });
 
     expect(auth.isLoggedIn()).toBe(false);
-    expect(navigate).toHaveBeenCalledWith(['/login']);
+    expect(navigate).toHaveBeenCalledWith(['/login'], {});
   });
+
+  it('merkt sich bei 401 die Seite, damit es nach der Anmeldung dort weitergeht (z. B. die Anzeige am Beamer)', () => {
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    vi.spyOn(router, 'url', 'get').mockReturnValue('/anzeige/t1?x=1');
+    http.get('http://localhost:8080/api/tournaments').subscribe({ error: () => undefined });
+
+    controller
+      .expectOne('http://localhost:8080/api/tournaments')
+      .flush({}, { status: 401, statusText: 'Unauthorized' });
+
+    expect(navigate).toHaveBeenCalledWith(['/login'], { queryParams: { weiter: '/anzeige/t1?x=1' } });
+  });
+
+  it.each(['/login', '/login?weiter=%2Fturniere', '/auth/callback?code=abc', '/abgemeldet'])(
+    'merkt sich auf der Seite %s nichts, sie gehört zur Anmeldung selbst',
+    (url) => {
+      const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+      vi.spyOn(router, 'url', 'get').mockReturnValue(url);
+      http.get('http://localhost:8080/api/tournaments').subscribe({ error: () => undefined });
+
+      controller
+        .expectOne('http://localhost:8080/api/tournaments')
+        .flush({}, { status: 401, statusText: 'Unauthorized' });
+
+      expect(navigate).toHaveBeenCalledWith(['/login'], {});
+    },
+  );
 
   it('lässt andere Fehler stehen, ohne abzumelden', () => {
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
@@ -67,6 +94,15 @@ describe('authInterceptor', () => {
       .flush({}, { status: 404, statusText: 'Not Found' });
 
     expect(auth.isLoggedIn()).toBe(true);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('überlässt ein 401 beim Laden des Profils dem AuthService, damit der Guard seine Rückkehr-Adresse behält', () => {
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    http.get('http://localhost:8080/api/me').subscribe({ error: () => undefined });
+
+    controller.expectOne('http://localhost:8080/api/me').flush({}, { status: 401, statusText: 'Unauthorized' });
+
     expect(navigate).not.toHaveBeenCalled();
   });
 

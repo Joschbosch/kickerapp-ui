@@ -15,8 +15,10 @@ Turnier), starten, Runden auslosen, beenden (mit Rückfrage), Spieler anmelden, 
 Ergebnisse festlegen und korrigieren (Streitfälle sind hervorgehoben). Dazu die Anzeige `/anzeige/:id` für weitere
 Bildschirme: Rangliste und Tische in großer Schrift ohne Menü.
 
-Als Nächstes: OIDC-Anmeldung mit Token-Erneuerung (der simulierte Login stellt Tokens für 8 Stunden aus und kennt keine
-Erneuerung, danach geht es zur Anmeldung).
+Anmeldung: Entwicklung mit Formular am simulierten Login des lokalen Backends (`authMode: password`), sonst über einen
+OIDC-Provider wie Keycloak (`authMode: oidc`, Authorization Code mit PKCE). Das Token wird mit dem Refresh-Token
+rechtzeitig vor Ablauf von selbst erneuert, auch in Fenstern, die stundenlang offen sind (Anzeige, Admin). Neu geöffnete
+Fenster melden sich beim Provider ohne Eingabe an, solange dessen Sitzung läuft.
 
 ## Schnellstart
 
@@ -48,11 +50,30 @@ Voraussetzungen: Node.js 22 oder neuer, für das Backend JDK 21 oder neuer.
 `public/config.json` wird beim Start geladen und kann nach dem Bauen ausgetauscht werden:
 
 ```json
-{ "apiBaseUrl": "http://localhost:8080", "authMode": "password" }
+{
+  "apiBaseUrl": "http://localhost:8080",
+  "authMode": "password",
+  "oidc": { "authority": "http://localhost:8180/realms/kickertool", "clientId": "kickertool-app" }
+}
 ```
 
 - `apiBaseUrl`: Adresse des Backends. Das Backend muss die Herkunft der UI freigeben (`KICKERTOOL_CORS_ALLOWED_ORIGINS`).
-- `authMode`: `password` (Formular am simulierten Login des lokalen Backends, nur Entwicklung), später `oidc`.
+- `authMode`: `password` (Formular am simulierten Login des lokalen Backends, nur Entwicklung) oder `oidc`.
+- `oidc.authority`: Adresse des Realms, genau so, wie sie im Token als Aussteller (`iss`) steht und das Backend sie kennt
+  (`KICKERTOOL_OIDC_ISSUER_URI`). `oidc.clientId`: öffentlicher Client ohne Secret.
+
+### Anmeldung mit Keycloak
+
+Im Backend-Repo startet `docker compose up -d` Keycloak (Port 8180, Realm `kickertool`, Nutzer `admin`/`admin`, `anna`/`anna`,
+`ben`/`ben`) und PostgreSQL, das Backend läuft dann ohne lokalen Modus
+(`KICKERTOOL_CORS_ALLOWED_ORIGINS=http://localhost:[*]`). In `public/config.json` `"authMode": "oidc"` setzen.
+
+Am Client müssen für die Adresse der UI (hier `https://kicker.example.org`) freigegeben sein (Standard-Realm: alles):
+
+- Gültige Weiterleitungs-URI: `https://kicker.example.org/auth/callback`
+- Gültige Weiterleitungs-URI nach dem Abmelden: `https://kicker.example.org/abgemeldet`
+- Web-Origin: `https://kicker.example.org` (für den Austausch des Codes und die Erneuerung)
+- Client öffentlich, PKCE `S256`, Standard-Flow an. Ein Refresh-Token liefert Keycloak dabei mit.
 
 ## Weiterarbeiten
 
