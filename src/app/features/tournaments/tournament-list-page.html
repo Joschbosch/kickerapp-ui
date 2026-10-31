@@ -1,4 +1,12 @@
-<h1>Turniere</h1>
+<div class="heading">
+  <h1>Turniere</h1>
+  @if (isAdmin()) {
+    <a mat-flat-button routerLink="/admin/turniere/neu">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Neues Turnier
+    </a>
+  }
+</div>
 
 @if (tournaments.isLoading()) {
   <mat-progress-bar mode="indeterminate" aria-label="Turniere werden geladen" />

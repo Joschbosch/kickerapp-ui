@@ -1,0 +1,58 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <fieldset>
+    <legend>Turnier</legend>
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" autocomplete="off" />
+      @if (form.controls.name.invalid) {
+        <mat-error>Bitte einen Namen eingeben.</mat-error>
+      }
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Datum</mat-label>
+      <input matInput type="date" formControlName="date" />
+      @if (form.controls.date.invalid) {
+        <mat-error>Bitte ein Datum wählen.</mat-error>
+      }
+    </mat-form-field>
+  </fieldset>
+
+  <fieldset>
+    <legend>Spielbetrieb</legend>
+    @for (field of ruleFields; track field.name) {
+      <mat-form-field appearance="outline">
+        <mat-label>{{ field.label }}</mat-label>
+        <input matInput type="number" inputmode="numeric" step="1" [min]="field.min" [formControlName]="field.name" />
+        @if (field.hint) {
+          <mat-hint>{{ field.hint }}</mat-hint>
+        }
+        @if (form.controls[field.name].invalid) {
+          <mat-error>{{ message(field) }}</mat-error>
+        }
+      </mat-form-field>
+    }
+  </fieldset>
+
+  <fieldset>
+    <legend>Punkte</legend>
+    @for (field of pointFields; track field.name) {
+      <mat-form-field appearance="outline">
+        <mat-label>{{ field.label }}</mat-label>
+        <input matInput type="number" inputmode="numeric" step="1" [min]="field.min" [formControlName]="field.name" />
+        @if (form.controls[field.name].invalid) {
+          <mat-error>{{ message(field) }}</mat-error>
+        }
+      </mat-form-field>
+    }
+  </fieldset>
+
+  <div class="actions">
+    <button
+      mat-flat-button
+      type="submit"
+      [disabled]="form.invalid || busy() || (requireChange() && form.pristine)"
+    >
+      {{ submitLabel() }}
+    </button>
+  </div>
+</form>

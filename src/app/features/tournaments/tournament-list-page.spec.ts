@@ -1,9 +1,11 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { TournamentSummary } from '../../api/models';
+import { AuthService } from '../../core/auth/auth.service';
 import { TournamentListPage } from './tournament-list-page';
 
 const URL = 'http://localhost:8080/api/tournaments';
@@ -50,6 +52,13 @@ describe('TournamentListPage', () => {
     expect(text()).toContain('Es gibt noch kein Turnier.');
   });
 
+  it('zeigt normalen Spielern kein „Neues Turnier“', async () => {
+    controller.expectOne(URL).flush([]);
+    await fixture.whenStable();
+
+    expect(text()).not.toContain('Neues Turnier');
+  });
+
   it('bietet bei einem Fehler an, es erneut zu versuchen', async () => {
     controller.expectOne(URL).flush({}, { status: 500, statusText: 'Server Error' });
     await fixture.whenStable();
@@ -64,5 +73,30 @@ describe('TournamentListPage', () => {
     await fixture.whenStable();
 
     expect(text()).toContain('Es gibt noch kein Turnier.');
+  });
+});
+
+describe('TournamentListPage als Admin', () => {
+  it('bietet an, ein neues Turnier anzulegen', async () => {
+    await TestBed.configureTestingModule({
+      imports: [TournamentListPage],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthService, useValue: { isAdmin: signal(true) } },
+      ],
+    }).compileComponents();
+    const controller = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(TournamentListPage);
+    fixture.detectChanges();
+    controller.expectOne(URL).flush([]);
+    await fixture.whenStable();
+
+    const link = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a')).find((entry) =>
+      entry.textContent!.includes('Neues Turnier'),
+    );
+    expect(link!.getAttribute('href')).toBe('/admin/turniere/neu');
+    controller.verify();
   });
 });

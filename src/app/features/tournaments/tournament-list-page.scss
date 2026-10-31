@@ -1,6 +1,15 @@
+.heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 8px 0 16px;
+}
+
 h1 {
   font: var(--mat-sys-headline-medium);
-  margin: 8px 0 16px;
+  margin: 0;
 }
 
 .cards {

@@ -1,0 +1,115 @@
+@if (snapshot(); as view) {
+  @let tournament = view.tournament;
+
+  <header>
+    <div>
+      <h1>{{ tournament.name }}</h1>
+      <p class="subtitle">
+        {{ tournament.date | date: 'fullDate' }} · {{ statusLabel[tournament.status] }}
+        @if (tournament.roundCount > 0) {
+          · Runde {{ tournament.roundCount }}
+          @if (tournament.config.plannedRounds) {
+            von {{ tournament.config.plannedRounds }}
+          }
+        }
+      </p>
+    </div>
+    <p class="updated">
+      @if (data.error()) {
+        <span class="stale" role="alert">Verbindung gestört.</span>
+      }
+      Stand {{ view.at | date: 'HH:mm:ss' }}
+    </p>
+  </header>
+
+  <div class="columns">
+    <section aria-labelledby="ranking-title">
+      <h2 id="ranking-title">Rangliste</h2>
+      @if (view.ranking.length === 0) {
+        <p class="empty">Noch keine Spieler angemeldet.</p>
+      } @else {
+        <table aria-label="Rangliste">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Spieler</th>
+              <th scope="col" class="num">Punkte</th>
+              <th scope="col" class="num">Spiele</th>
+              <th scope="col" class="num">Diff.</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (entry of view.ranking; track entry.player.id) {
+              <tr [class.inactive]="entry.status !== 'ACTIVE'">
+                <td>{{ entry.rank }}</td>
+                <td>
+                  {{ entry.player.displayName }}
+                  @if (entry.status !== 'ACTIVE') {
+                    <span class="status">{{ participantStatusLabel(entry.status) }}</span>
+                  }
+                </td>
+                <td class="num strong">{{ entry.points }}</td>
+                <td class="num">{{ entry.matchesPlayed }}</td>
+                <td class="num">{{ entry.goalDifference > 0 ? '+' : '' }}{{ entry.goalDifference }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+    <section aria-labelledby="tables-title">
+      <h2 id="tables-title">Tische</h2>
+      @if (tournament.status === 'PLANNED') {
+        <p class="empty">Das Turnier hat noch nicht begonnen.</p>
+      } @else if (tournament.status === 'FINISHED') {
+        <p class="empty">Das Turnier ist beendet.</p>
+      } @else if (matches().length === 0) {
+        <p class="empty">Die nächste Runde wird noch ausgelost.</p>
+      } @else {
+        <p class="progress">{{ played() }} von {{ matches().length }} Spielen gespielt</p>
+
+        @if (onTable().length === 0) {
+          <p class="empty">Alle Tische sind frei, die Ergebnisse werden noch bestätigt.</p>
+        }
+        <ul class="tables">
+          @for (match of onTable(); track match.id) {
+            <li>
+              <h3>Tisch {{ match.table }}</h3>
+              <div class="teams">
+                <div class="team">
+                  @for (name of team(match.teamA); track $index) {
+                    <span>{{ name }}</span>
+                  }
+                </div>
+                <span class="versus" aria-hidden="true">gegen</span>
+                <div class="team">
+                  @for (name of team(match.teamB); track $index) {
+                    <span>{{ name }}</span>
+                  }
+                </div>
+              </div>
+            </li>
+          }
+        </ul>
+
+        @if (queued().length > 0) {
+          <h3 class="next">Als Nächstes</h3>
+          <ul class="queue">
+            @for (match of queued(); track match.id) {
+              <li>{{ team(match.teamA).join(' & ') }} <span class="versus">gegen</span> {{ team(match.teamB).join(' & ') }}</li>
+            }
+          </ul>
+        }
+      }
+    </section>
+  </div>
+} @else if (data.error()) {
+  <div class="message" role="alert">
+    <p>Das Turnier konnte nicht geladen werden.</p>
+    <button mat-stroked-button type="button" (click)="data.reload()">Erneut versuchen</button>
+    <a mat-button routerLink="/turniere">Zur Turnierliste</a>
+  </div>
+} @else {
+  <p class="message">Wird geladen …</p>
+}

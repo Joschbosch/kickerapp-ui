@@ -1,4 +1,4 @@
-import { Match, Participant, Player, Slot, Tournament } from '../api/models';
+import { Match, Participant, Player, RankingEntry, Round, Slot, Tournament } from '../api/models';
 
 /** Kleine Beispieldaten für die Tests. */
 export const ANNA: Player = { id: 'p-anna', displayName: 'Anna Beispiel' };
@@ -30,6 +30,28 @@ export function match(overrides: Partial<Match> = {}): Match {
     ...overrides,
   };
 }
+
+export function rankingEntry(rank: number, player: Player, points: number, status: RankingEntry['status'] = 'ACTIVE'): RankingEntry {
+  return {
+    rank,
+    player,
+    points,
+    status,
+    matchesPlayed: 1,
+    wins: 1,
+    draws: 0,
+    losses: 0,
+    goalsFor: 10,
+    goalsAgainst: 5,
+    goalDifference: 5,
+  };
+}
+
+export function round(number: number, matches: Match[], complete = false): Round {
+  return { number, matches, complete };
+}
+
+export const CAN_DECIDE: Match['permissions'] = { canEnterResult: false, canConfirm: false, canReject: false, canDecide: true };
 
 export function tournament(overrides: Partial<Tournament> = {}): Tournament {
   return {

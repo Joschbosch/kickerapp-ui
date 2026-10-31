@@ -6,7 +6,13 @@ responsive App, installierbar als PWA: Handy für Spieler, Desktop-Web für Admi
 Stand: Anmeldung, Turnierliste und die Spieler-Ansicht eines Turniers (zum Turnier anmelden, pausieren, ausscheiden,
 mein Spiel mit Tisch und Teams, Ergebnis eintragen, bestätigen oder ablehnen, Rangliste). Die Seite lädt nach jeder
 Aktion neu und über die Schaltfläche „Aktualisieren“, automatische Aktualisierung (Live-Updates) fehlt noch.
-Als NÃ¤chstes: Live-Updates, Admin-Ansicht (Turnier verwalten, Runden, Tabellen-Fenster), OIDC-Anmeldung.
+
+Admin-Ansicht (nur mit Admin-Rolle, `/admin`): Turnier anlegen, Name, Datum und Konfiguration ändern (auch im laufenden
+Turnier), starten, Runden auslosen, beenden (mit Rückfrage), Spieler anmelden, abmelden, pausieren oder ausscheiden lassen,
+Ergebnisse festlegen und korrigieren (Streitfälle sind hervorgehoben). Dazu die Anzeige `/anzeige/:id` für weitere
+Bildschirme: Rangliste und Tische in großer Schrift ohne Menü, fragt alle 15 Sekunden neu ab.
+
+Als Nächstes: Live-Updates (ersetzen die Abfrage alle 15 Sekunden), Token-Erneuerung, OIDC-Anmeldung.
 
 ## Schnellstart
 

@@ -4,14 +4,18 @@ import { Observable } from 'rxjs';
 
 import { AppConfigService } from '../core/app-config';
 import {
+  ConfigRequest,
   Match,
   Me,
   ParticipantStatus,
+  PlanTournamentRequest,
+  Player,
   RankingEntry,
   ResultRequest,
   Round,
   Tournament,
   TournamentSummary,
+  UpdateTournamentRequest,
 } from './models';
 
 /**
@@ -55,14 +59,68 @@ export class KickerApi {
 
   /** Meldet den angemeldeten Spieler ab (nur solange das Turnier geplant ist). */
   unregister(tournamentId: string): Observable<Tournament> {
-    return this.http.delete<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/participants/me`));
+    return this.removeParticipant(tournamentId, 'me');
   }
 
   /** Pausieren (ab der nächsten Runde), wieder einsteigen oder ausscheiden (endgültig). */
   changeMyStatus(tournamentId: string, status: ParticipantStatus): Observable<Tournament> {
-    return this.http.put<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/participants/me/status`), {
-      status,
-    });
+    return this.changeParticipantStatus(tournamentId, 'me', status);
+  }
+
+  // --- Nur Admin ---
+
+  /** Alle bekannten Spieler, z. B. um einen anderen zum Turnier anzumelden. */
+  players(): Observable<Player[]> {
+    return this.http.get<Player[]>(this.config.url('/api/players'));
+  }
+
+  planTournament(request: PlanTournamentRequest): Observable<Tournament> {
+    return this.http.post<Tournament>(this.config.url('/api/tournaments'), request);
+  }
+
+  updateDetails(tournamentId: string, request: UpdateTournamentRequest): Observable<Tournament> {
+    return this.http.put<Tournament>(this.config.url(`/api/tournaments/${tournamentId}`), request);
+  }
+
+  /** Ersetzt die Konfiguration, auch im laufenden Turnier. */
+  updateConfig(tournamentId: string, config: ConfigRequest): Observable<Tournament> {
+    return this.http.put<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/config`), config);
+  }
+
+  start(tournamentId: string): Observable<Tournament> {
+    return this.http.post<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/start`), {});
+  }
+
+  startNextRound(tournamentId: string): Observable<Tournament> {
+    return this.http.post<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/rounds`), {});
+  }
+
+  finish(tournamentId: string): Observable<Tournament> {
+    return this.http.post<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/finish`), {});
+  }
+
+  /** Meldet einen anderen bekannten Spieler an. */
+  registerPlayer(tournamentId: string, playerId: string): Observable<Tournament> {
+    return this.http.post<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/participants`), { playerId });
+  }
+
+  removeParticipant(tournamentId: string, playerId: string): Observable<Tournament> {
+    return this.http.delete<Tournament>(this.config.url(`/api/tournaments/${tournamentId}/participants/${playerId}`));
+  }
+
+  changeParticipantStatus(tournamentId: string, playerId: string, status: ParticipantStatus): Observable<Tournament> {
+    return this.http.put<Tournament>(
+      this.config.url(`/api/tournaments/${tournamentId}/participants/${playerId}/status`),
+      { status },
+    );
+  }
+
+  /** Legt das Ergebnis eines Matches fest oder korrigiert es, es zählt sofort. */
+  decideResult(tournamentId: string, matchId: string, result: ResultRequest): Observable<Match> {
+    return this.http.put<Match>(
+      this.config.url(`/api/tournaments/${tournamentId}/matches/${matchId}/result`),
+      result,
+    );
   }
 
   submitResult(tournamentId: string, matchId: string, result: ResultRequest): Observable<Match> {

@@ -38,7 +38,10 @@ describe('TournamentDetailPage', () => {
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: AuthService, useValue: { me: signal({ id: ANNA.id, displayName: ANNA.displayName, admin: false }) } },
+        {
+          provide: AuthService,
+          useValue: { me: signal({ id: ANNA.id, displayName: ANNA.displayName, admin: false }), isAdmin: signal(false) },
+        },
       ],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);

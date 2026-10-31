@@ -1,0 +1,12 @@
+<a mat-button routerLink="/turniere" class="back">
+  <mat-icon aria-hidden="true">arrow_back</mat-icon>
+  Alle Turniere
+</a>
+
+<h1>Neues Turnier</h1>
+
+@if (busy()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Wird gespeichert" />
+}
+
+<app-tournament-form [value]="defaults" submitLabel="Turnier anlegen" [busy]="busy()" (submitted)="create($event)" />

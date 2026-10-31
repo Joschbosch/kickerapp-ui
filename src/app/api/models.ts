@@ -23,6 +23,7 @@ export type TournamentEvent = Schemas['Event'];
 export type EventTicket = Schemas['EventTicket'];
 
 export type PlanTournamentRequest = Schemas['PlanTournament'];
+export type UpdateTournamentRequest = Schemas['UpdateTournament'];
 export type ConfigRequest = Schemas['ConfigRequest'];
 export type ResultRequest = Schemas['ResultRequest'];
 

@@ -3,9 +3,17 @@
     <mat-icon aria-hidden="true">arrow_back</mat-icon>
     Alle Turniere
   </a>
-  <button mat-icon-button type="button" aria-label="Aktualisieren" (click)="data.reload()" [disabled]="data.isLoading()">
-    <mat-icon aria-hidden="true">refresh</mat-icon>
-  </button>
+  <span class="tools">
+    @if (isAdmin()) {
+      <a mat-button [routerLink]="['/admin/turniere', id()]">
+        <mat-icon aria-hidden="true">settings</mat-icon>
+        Verwalten
+      </a>
+    }
+    <button mat-icon-button type="button" aria-label="Aktualisieren" (click)="data.reload()" [disabled]="data.isLoading()">
+      <mat-icon aria-hidden="true">refresh</mat-icon>
+    </button>
+  </span>
 </div>
 
 @if (data.isLoading() || busy()) {

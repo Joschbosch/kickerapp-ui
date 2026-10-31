@@ -1,0 +1,79 @@
+@let m = match();
+
+<mat-card appearance="outlined" [attr.data-status]="m.status">
+  <mat-card-header>
+    <mat-card-title>
+      @if (m.table !== null) {
+        Tisch {{ m.table }}
+      } @else {
+        Wartet auf einen Tisch
+      }
+    </mat-card-title>
+    <mat-card-subtitle>
+      Runde {{ m.round }} · <span class="chip" [attr.data-status]="m.status">{{ statusLabel[m.status] }}</span>
+    </mat-card-subtitle>
+  </mat-card-header>
+
+  <mat-card-content>
+    <div class="teams">
+      <div class="team">
+        <span class="caption">Team A</span>
+        @for (name of teamA(); track $index) {
+          <span>{{ name }}</span>
+        }
+      </div>
+      <div class="score" aria-label="Ergebnis">
+        @if (m.result; as result) {
+          <strong>{{ result.goalsA }} : {{ result.goalsB }}</strong>
+        } @else {
+          <span aria-hidden="true">gegen</span>
+        }
+      </div>
+      <div class="team">
+        <span class="caption">Team B</span>
+        @for (name of teamB(); track $index) {
+          <span>{{ name }}</span>
+        }
+      </div>
+    </div>
+
+    @if (m.result; as result) {
+      <p class="note">
+        @if (result.confirmed) {
+          Ergebnis gilt{{ result.source === 'ADMIN' ? ' (vom Admin festgelegt)' : '' }}.
+        } @else if (m.status === 'DISPUTED') {
+          Streitfall: {{ enteredBy() ?? 'Ein Spieler' }} hat {{ result.goalsA }} : {{ result.goalsB }} eingetragen, das
+          Gegnerteam hat abgelehnt. Bitte das Ergebnis festlegen.
+        } @else {
+          {{ enteredBy() ?? 'Ein Spieler' }} hat {{ result.goalsA }} : {{ result.goalsB }} eingetragen, die Bestätigung
+          des Gegnerteams steht aus.
+        }
+      </p>
+    }
+
+    @if (editing()) {
+      <form [formGroup]="form" (ngSubmit)="send()" class="entry">
+        <mat-form-field appearance="outline">
+          <mat-label>Tore Team A</mat-label>
+          <input matInput type="number" inputmode="numeric" min="0" step="1" formControlName="goalsA" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Tore Team B</mat-label>
+          <input matInput type="number" inputmode="numeric" min="0" step="1" formControlName="goalsB" />
+        </mat-form-field>
+        <div class="actions">
+          <button mat-flat-button type="submit" [disabled]="form.invalid || busy()">Ergebnis festlegen</button>
+          <button mat-button type="button" (click)="editing.set(false)" [disabled]="busy()">Abbrechen</button>
+        </div>
+      </form>
+    }
+  </mat-card-content>
+
+  @if (!editing() && m.permissions.canDecide) {
+    <mat-card-actions>
+      <button mat-flat-button type="button" (click)="open()" [disabled]="busy()">
+        {{ m.result?.confirmed ? 'Ergebnis korrigieren' : 'Ergebnis festlegen' }}
+      </button>
+    </mat-card-actions>
+  }
+</mat-card>

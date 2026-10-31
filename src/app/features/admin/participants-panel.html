@@ -1,0 +1,61 @@
+@let status = tournamentStatus();
+
+@if (status !== 'FINISHED') {
+  <div class="add">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Spieler anmelden</mat-label>
+      <select matNativeControl [value]="selected()" (change)="selected.set($any($event.target).value)">
+        <option value="">Spieler wählen …</option>
+        @for (player of candidates(); track player.id) {
+          <option [value]="player.id">{{ player.displayName }}</option>
+        }
+      </select>
+    </mat-form-field>
+    <button mat-flat-button type="button" (click)="add()" [disabled]="selected() === '' || busy()">Anmelden</button>
+  </div>
+  @if (candidates().length === 0) {
+    <p class="hint">Alle bekannten Spieler sind schon angemeldet. Neue Spieler erscheinen hier, sobald sie sich einmal angemeldet haben.</p>
+  }
+}
+
+@if (sorted().length === 0) {
+  <p class="hint">Noch niemand angemeldet.</p>
+} @else {
+  <ul class="people">
+    @for (entry of sorted(); track entry.player.id) {
+      <li [attr.data-status]="entry.status">
+        <span class="name">{{ entry.player.displayName }}</span>
+        <span class="chip" [attr.data-status]="entry.status">{{ statusLabel[entry.status] }}</span>
+
+        @if (status !== 'FINISHED' && entry.status !== 'WITHDRAWN') {
+          <span class="actions">
+            @if (confirmingWithdraw() === entry.player.id) {
+              <span class="warning" role="alert">Endgültig, keine Rückkehr möglich.</span>
+              <button mat-flat-button type="button" class="danger" (click)="emit(entry.player, 'withdraw')" [disabled]="busy()">
+                Ja, ausscheiden
+              </button>
+              <button mat-button type="button" (click)="confirmingWithdraw.set(null)">Abbrechen</button>
+            } @else if (status === 'PLANNED') {
+              <button mat-stroked-button type="button" (click)="emit(entry.player, 'unregister')" [disabled]="busy()">
+                Abmelden
+              </button>
+            } @else {
+              @if (entry.status === 'ACTIVE') {
+                <button mat-stroked-button type="button" (click)="emit(entry.player, 'pause')" [disabled]="busy()">
+                  Pausieren
+                </button>
+              } @else {
+                <button mat-stroked-button type="button" (click)="emit(entry.player, 'resume')" [disabled]="busy()">
+                  Wieder einsteigen
+                </button>
+              }
+              <button mat-button type="button" (click)="confirmingWithdraw.set(entry.player.id)" [disabled]="busy()">
+                Ausscheiden
+              </button>
+            }
+          </span>
+        }
+      </li>
+    }
+  </ul>
+}

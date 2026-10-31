@@ -1,0 +1,80 @@
+:host {
+  display: block;
+}
+
+.add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding-top: 8px;
+
+  mat-form-field {
+    flex: 1 1 260px;
+    max-width: 420px;
+  }
+
+  button {
+    margin-bottom: 4px;
+  }
+}
+
+.hint {
+  margin: 0 0 12px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.people {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+
+    &[data-status='WITHDRAWN'] .name {
+      color: var(--mat-sys-on-surface-variant);
+      text-decoration: line-through;
+    }
+  }
+}
+
+.name {
+  flex: 1 1 160px;
+  font: var(--mat-sys-body-large);
+}
+
+.chip {
+  padding: 1px 8px;
+  border-radius: 10px;
+  font: var(--mat-sys-label-small);
+  background: var(--mat-sys-surface-container-highest);
+  color: var(--mat-sys-on-surface-variant);
+
+  &[data-status='ACTIVE'] {
+    background: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+  }
+}
+
+.actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.warning {
+  color: var(--mat-sys-error);
+  font: var(--mat-sys-body-small);
+}
+
+.danger {
+  --mat-button-filled-container-color: var(--mat-sys-error);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+}

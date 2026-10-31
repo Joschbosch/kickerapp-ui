@@ -48,6 +48,7 @@ export class TournamentDetailPage {
   protected readonly tournamentStatus = TOURNAMENT_STATUS_LABEL;
   protected readonly columns = ['rank', 'player', 'points', 'played', 'wins', 'draws', 'losses', 'goals', 'difference'];
   protected readonly playerId = computed(() => this.auth.me()?.id ?? '');
+  protected readonly isAdmin = this.auth.isAdmin;
   /** Ein Aufruf (Anmelden, Ergebnis, ...) läuft, die Schaltflächen sind solange gesperrt. */
   protected readonly busy = signal(false);
 

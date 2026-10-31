@@ -8,6 +8,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
 
 import { KickerApi } from '../../api/kicker-api';
+import { AuthService } from '../../core/auth/auth.service';
 import { TOURNAMENT_STATUS_LABEL } from '../../shared/labels';
 
 @Component({
@@ -20,6 +21,7 @@ import { TOURNAMENT_STATUS_LABEL } from '../../shared/labels';
 export class TournamentListPage {
   private readonly api = inject(KickerApi);
 
+  protected readonly isAdmin = inject(AuthService).isAdmin;
   protected readonly statusLabel = TOURNAMENT_STATUS_LABEL;
   protected readonly tournaments = rxResource({ stream: () => this.api.tournaments() });
 }

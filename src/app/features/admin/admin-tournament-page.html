@@ -1,0 +1,125 @@
+<div class="toolbar">
+  <a mat-button routerLink="/turniere" class="back">
+    <mat-icon aria-hidden="true">arrow_back</mat-icon>
+    Alle Turniere
+  </a>
+  <button mat-icon-button type="button" aria-label="Aktualisieren" (click)="data.reload()" [disabled]="data.isLoading()">
+    <mat-icon aria-hidden="true">refresh</mat-icon>
+  </button>
+</div>
+
+@if (data.isLoading() || busy()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Wird geladen" />
+}
+
+@if (data.error()) {
+  <div class="message" role="alert">
+    <p>Das Turnier konnte nicht geladen werden.</p>
+    <button mat-stroked-button type="button" (click)="data.reload()">Erneut versuchen</button>
+  </div>
+} @else if (data.hasValue()) {
+  @let tournament = data.value().tournament;
+
+  <header>
+    <h1>{{ tournament.name }}</h1>
+    <p class="subtitle">
+      {{ tournament.date | date: 'fullDate' }} · {{ statusLabel[tournament.status] }}
+      @if (tournament.roundCount > 0) {
+        · Runde {{ tournament.roundCount }}
+      }
+      · {{ tournament.participants.length }} Spieler
+    </p>
+  </header>
+
+  <section class="controls" aria-label="Turnier steuern">
+    @switch (tournament.status) {
+      @case ('PLANNED') {
+        <button mat-flat-button type="button" (click)="start()" [disabled]="busy()">Turnier starten</button>
+      }
+      @case ('RUNNING') {
+        @if (confirmingFinish()) {
+          <span class="warning" role="alert">Das Turnier endet endgültig, danach lassen sich keine Runden mehr auslosen.</span>
+          <button mat-flat-button type="button" class="danger" (click)="finish()" [disabled]="busy()">
+            Ja, Turnier beenden
+          </button>
+          <button mat-button type="button" (click)="confirmingFinish.set(false)">Abbrechen</button>
+        } @else {
+          <button mat-flat-button type="button" (click)="nextRound()" [disabled]="busy() || roundOpen()">
+            Nächste Runde auslosen
+          </button>
+          <button mat-stroked-button type="button" (click)="confirmingFinish.set(true)" [disabled]="busy() || roundOpen()">
+            Turnier beenden
+          </button>
+        }
+      }
+    }
+    <a mat-stroked-button [routerLink]="['/anzeige', tournament.id]" target="_blank">
+      <mat-icon aria-hidden="true">open_in_new</mat-icon>
+      Anzeige öffnen
+    </a>
+  </section>
+
+  @if (tournament.status === 'RUNNING' && roundOpen()) {
+    <p class="hint">{{ blockedHint }}</p>
+  }
+
+  @if (disputed() > 0) {
+    <p class="alert" role="status">
+      {{ disputed() === 1 ? '1 Streitfall wartet' : disputed() + ' Streitfälle warten' }} auf deine Entscheidung.
+    </p>
+  }
+
+  <mat-tab-group animationDuration="0ms" mat-stretch-tabs="false" [dynamicHeight]="true">
+    <mat-tab label="Runden">
+      <div class="tab">
+        @if (rounds().length === 0) {
+          <p class="message">Noch keine Runde ausgelost.</p>
+        }
+        @for (round of rounds(); track round.number) {
+          <section [attr.aria-label]="'Runde ' + round.number">
+            <h2>
+              Runde {{ round.number }}
+              <span class="chip" [attr.data-complete]="round.complete">
+                {{ round.complete ? 'abgeschlossen' : 'läuft' }}
+              </span>
+            </h2>
+            <ul class="matches">
+              @for (match of round.matches; track match.id) {
+                <li>
+                  <app-admin-match-card [match]="match" [busy]="busy()" (decide)="decide(match, $event)" />
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Spieler">
+      <div class="tab">
+        <app-participants-panel
+          [tournamentStatus]="tournament.status"
+          [participants]="tournament.participants"
+          [players]="data.value().players"
+          [busy]="busy()"
+          (register)="register($event)"
+          (act)="actOnParticipant($event)"
+        />
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Einstellungen">
+      <div class="tab">
+        @if (formValue(); as value) {
+          <app-tournament-form
+            [value]="value"
+            submitLabel="Änderungen speichern"
+            [busy]="busy()"
+            [requireChange]="true"
+            (submitted)="saveSettings($event)"
+          />
+        }
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+}

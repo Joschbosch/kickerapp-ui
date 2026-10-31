@@ -1,0 +1,162 @@
+// Große Schrift für Beamer und weit entfernte Bildschirme
+:host {
+  display: block;
+  min-height: 100vh;
+  padding: clamp(16px, 2.5vw, 40px);
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font-size: clamp(16px, 1.6vw, 28px);
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-bottom: 1.2em;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2em;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+h2 {
+  margin: 0 0 0.5em;
+  font-size: 1.4em;
+  font-weight: 500;
+}
+
+h3 {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 500;
+  color: var(--mat-sys-primary);
+}
+
+.subtitle,
+.updated,
+.empty,
+.progress,
+.message {
+  margin: 0;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.updated {
+  font-size: 0.75em;
+}
+
+.stale {
+  margin-right: 0.5em;
+  color: var(--mat-sys-error);
+  font-weight: 500;
+}
+
+.columns {
+  display: grid;
+  gap: 2em;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1000px) {
+  .columns {
+    grid-template-columns: 3fr 2fr;
+    align-items: start;
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.35em 0.5em;
+  text-align: left;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
+th {
+  font-size: 0.7em;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.strong {
+  font-weight: 600;
+}
+
+.inactive {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.status {
+  margin-left: 0.4em;
+  padding: 0 0.5em;
+  border-radius: 1em;
+  background: var(--mat-sys-surface-container-highest);
+  font-size: 0.65em;
+}
+
+.progress {
+  margin-bottom: 0.8em;
+  font-size: 0.8em;
+}
+
+.tables,
+.queue {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tables {
+  display: grid;
+  gap: 0.8em;
+  grid-template-columns: repeat(auto-fill, minmax(14em, 1fr));
+
+  li {
+    padding: 0.7em 0.9em;
+    border: 2px solid var(--mat-sys-primary);
+    border-radius: var(--mat-sys-corner-large);
+    background: var(--mat-sys-surface-container-low);
+  }
+}
+
+.teams {
+  display: grid;
+  gap: 0.25em;
+  padding-top: 0.3em;
+}
+
+.team {
+  display: flex;
+  flex-direction: column;
+}
+
+.versus {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.7em;
+  text-transform: uppercase;
+}
+
+.next {
+  margin-top: 1.2em;
+}
+
+.queue li {
+  padding: 0.35em 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  font-size: 0.85em;
+}
