@@ -90,20 +90,20 @@ Am Client müssen für die Adresse der UI (hier `https://kicker.example.org`) fr
 
 ### Test am Handy im lokalen Netz
 
-Das Handy erreicht `localhost` des PCs nicht, alles läuft deshalb über die Adresse des PCs im WLAN (hier `10.0.0.204`):
+Das Handy erreicht `localhost` des PCs nicht, alles läuft deshalb über die Adresse des PCs im WLAN (im Folgenden `<PC-Adresse>`, z. B. `192.168.1.20`):
 
 1. `docker compose up -d` im Backend-Repo (Keycloak, Postgres). Der Aussteller im Token ist die Adresse, unter der der Browser
-   Keycloak aufruft. Das Backend bekommt genau diese: `KICKERTOOL_OIDC_ISSUER_URI=http://10.0.0.204:8180/realms/kickertool`,
-   dazu `KICKERTOOL_CORS_ALLOWED_ORIGINS=http://10.0.0.204:4200,http://localhost:4200`, dann `.\mvnw.cmd -pl kickertool-bootstrap spring-boot:run`.
+   Keycloak aufruft. Das Backend bekommt genau diese: `KICKERTOOL_OIDC_ISSUER_URI=http://<PC-Adresse>:8180/realms/kickertool`,
+   dazu `KICKERTOOL_CORS_ALLOWED_ORIGINS=http://<PC-Adresse>:4200,http://localhost:4200`, dann `.\mvnw.cmd -pl kickertool-bootstrap spring-boot:run`.
    Wechselt der Aussteller (z. B. von `localhost` auf die Adresse), kennt das Backend dieselben Nutzer als neue Spieler: dann
    eine frische Datenbank nehmen (`KICKERTOOL_DB_URL`).
 2. `public/config.json`: `apiBaseUrl` und `oidc.authority` auf die Adresse des PCs, `authMode` auf `oidc` und
    `"allowInsecureContext": true` (siehe unten). **Diese Werte nicht committen.**
-3. `npx ng serve --host 0.0.0.0 --allowed-hosts`, am Handy `http://10.0.0.204:4200` öffnen.
+3. `npx ng serve --host 0.0.0.0 --allowed-hosts`, am Handy `http://<PC-Adresse>:4200` öffnen.
 4. Die Windows-Firewall muss die Ports 4200, 8080 und 8180 aus dem lokalen Netz zulassen.
 
 **Warum `allowInsecureContext`:** Der Browser erlaubt `crypto.subtle` (SHA-256 für PKCE) nur über HTTPS oder `localhost`. Am Handy
-über `http://10.0.0.204:4200` fehlt es, die Anmeldung scheitert. Die Option baut ein SHA-256 in JavaScript ein
+über `http://<PC-Adresse>:4200` fehlt es, die Anmeldung scheitert. Die Option baut ein SHA-256 in JavaScript ein
 (`core/auth/insecure-crypto.ts`). Sie ist standardmäßig aus und gehört nur in Tests im eigenen Netz. Im Betrieb gibt es HTTPS, dann
 ist sie nicht nötig. Browser-Benachrichtigungen (Systembenachrichtigung) gibt es über HTTP ebenfalls nicht, Vibration, Ton und der
 Hinweis in der App gehen.
