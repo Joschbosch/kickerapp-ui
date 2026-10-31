@@ -127,13 +127,45 @@ describe('TournamentForm', () => {
     expect(submitButton().disabled).toBe(false);
   });
 
-  it('setzt sich zurück, wenn sich die Ausgangswerte ändern', async () => {
+  it('übernimmt neue Ausgangswerte, solange nichts geändert wurde', async () => {
+    await show();
+
+    fixture.componentRef.setInput('value', { ...VALUE, name: 'Von anderswo geändert' });
+    await fixture.whenStable();
+
+    expect(field('Name').value).toBe('Von anderswo geändert');
+  });
+
+  it('behält ungespeicherte Eingaben, wenn sich der Stand von außen ändert (Live-Update)', async () => {
     await show();
     await type('Name', 'Entwurf');
 
-    fixture.componentRef.setInput('value', { ...VALUE, name: 'Gespeichert' });
+    fixture.componentRef.setInput('value', { ...VALUE, config: { ...VALUE.config, tableCount: 5 } });
     await fixture.whenStable();
 
-    expect(field('Name').value).toBe('Gespeichert');
+    expect(field('Name').value).toBe('Entwurf');
+    expect(field('Anzahl Tische').value).toBe('3');
+  });
+
+  it('wird nach dem Speichern wieder sauber, wenn der neue Stand dem Formular entspricht', async () => {
+    await show(true);
+    await type('Name', 'Neu');
+    expect(submitButton().disabled).toBe(false);
+
+    fixture.componentRef.setInput('value', { ...VALUE, name: 'Neu' });
+    await fixture.whenStable();
+
+    expect(field('Name').value).toBe('Neu');
+    expect(submitButton().disabled).toBe(true);
+  });
+
+  it('setzt bei einem Neuladen mit gleichem Inhalt nichts zurück', async () => {
+    await show();
+    await type('Name', 'Entwurf');
+
+    fixture.componentRef.setInput('value', { ...VALUE, config: { ...VALUE.config } });
+    await fixture.whenStable();
+
+    expect(field('Name').value).toBe('Entwurf');
   });
 });

@@ -28,7 +28,7 @@ Diese Datei gilt für alle Assistenten (Codex, Claude Code, ...). Eigenheiten ei
 
 ## Aufbau (`src/app`)
 - `api/`: `kicker-api.ts` (alle Aufrufe), `models.ts` (Typ-Aliasse), `schema.d.ts` (erzeugt, nicht von Hand ändern).
-- `core/`: Konfiguration (`app-config.ts`) und Anmeldung (`auth/`: Service, Interceptor, Guards).
+- `core/`: Konfiguration (`app-config.ts`), Anmeldung (`auth/`: Service, Interceptor, Guards) und Live-Updates (`events/`).
 - `features/`: je Bereich ein Ordner (Anmeldung, Rahmen, Turniere). Neue Seiten werden in `app.routes.ts` per
   `loadComponent` eingehängt.
 - `shared/`: Anzeigetexte und Gemeinsames.
@@ -55,12 +55,18 @@ Diese Datei gilt für alle Assistenten (Codex, Claude Code, ...). Eigenheiten ei
 - Der Admin-Status kommt aus `GET /api/me` (`admin`), durchgesetzt wird er im Backend.
 - Tokens und Passwörter nie ins Repo, in Logs oder in URLs schreiben.
 
-## Live-Updates (noch nicht umgesetzt)
-- Der Browser-`EventSource` kann keinen Authorization-Header senden. Ablauf: `POST /api/tournaments/{id}/events/ticket` mit dem
-  Token, dann `new EventSource(BACKEND + streamUrl)` (Ticket in der Adresse). Details in der Übergabe, Abschnitt 6.
-- Die Events enthalten keine Daten, die UI lädt nach einem Event neu. Jedes Event hat eine `id`: merken und beim erneuten
-  Verbinden als `&lastEventId=` anhängen. Ein `RESYNC` heißt: alles neu laden.
-- Tabellen-Bildschirme laufen stundenlang: Token erneuern, bei Abbruch (`readyState === CLOSED`) mit neuem Ticket neu verbinden.
+## Live-Updates
+- `core/events/live-updates.ts` (`LiveUpdates.watch(id)`): holt das Ticket, öffnet den `EventSource`, merkt sich die Event-`id` und
+  verbindet sich bei endgültigem Abbruch (`readyState === CLOSED`) mit neuem Ticket und `&lastEventId=` neu (Abstand 3 s,
+  verdoppelt bis 30 s). Nach einer Lücke wird zur Sicherheit ein Neuladen gemeldet. Details in der Übergabe, Abschnitt 6.
+- `core/events/live-reload.ts` (`liveReload(...)`) im Konstruktor einer Seite aufrufen: lädt bei Events gebündelt (300 ms) neu und
+  fragt ersatzweise in Abständen nach, solange der Stream nicht steht. Gibt den Status für `<app-live-badge>` zurück.
+- Events enthalten keine Daten, die Seiten laden immer alles neu. Ein Formular, das aus dem geladenen Stand befüllt wird, darf
+  dabei ungespeicherte Eingaben nicht verlieren (Beispiel: `TournamentForm`). Den Fortschrittsbalken nur beim ersten Laden zeigen
+  (`data.status() === 'loading'`), sonst blinkt er bei jedem Event.
+- In Seiten-Tests `controlledLiveUpdates()` oder `noLiveUpdates()` aus `testing/live.ts` bereitstellen, sonst fragt die Seite ein
+  Ticket an.
+- Token-Erneuerung gibt es noch nicht (kommt mit dem OIDC-Login). Der simulierte Login stellt 8-Stunden-Tokens aus.
 
 ## Prüfen vor dem Abschluss
 - `npm test` und `npm run build` (Typprüfung und Vorlagen werden beim Bauen geprüft).

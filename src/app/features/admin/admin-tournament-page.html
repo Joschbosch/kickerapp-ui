@@ -3,12 +3,15 @@
     <mat-icon aria-hidden="true">arrow_back</mat-icon>
     Alle Turniere
   </a>
+  <span class="tools">
+  <app-live-badge [status]="live()" />
   <button mat-icon-button type="button" aria-label="Aktualisieren" (click)="data.reload()" [disabled]="data.isLoading()">
     <mat-icon aria-hidden="true">refresh</mat-icon>
   </button>
+  </span>
 </div>
 
-@if (data.isLoading() || busy()) {
+@if (data.status() === 'loading' || busy()) {
   <mat-progress-bar mode="indeterminate" aria-label="Wird geladen" />
 }
 

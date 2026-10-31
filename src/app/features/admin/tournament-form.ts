@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, output, untracked } from '@angular/core';
 import { AbstractControl, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -82,10 +82,24 @@ export class TournamentForm {
     pointsLoss: this.numberControl(POINT_FIELDS[2]),
   });
 
+  /** Die zuletzt übernommenen Ausgangswerte, damit ein Neuladen mit gleichem Inhalt nichts zurücksetzt. */
+  private applied = '';
+
   constructor() {
+    // Live-Updates laden den Stand neu: Ungespeicherte Eingaben bleiben dabei stehen, außer das Neue ist genau, was
+    // im Formular steht (nach dem Speichern).
     effect(() => {
-      const { name, date, config } = this.value();
-      this.form.reset({ name, date, ...config });
+      const value = this.value();
+      untracked(() => {
+        const key = JSON.stringify(value);
+        if (key === this.applied) {
+          return;
+        }
+        this.applied = key;
+        if (this.form.pristine || this.matchesForm(value)) {
+          this.form.reset({ name: value.name, date: value.date, ...value.config });
+        }
+      });
     });
   }
 
@@ -119,6 +133,12 @@ export class TournamentForm {
         pointsLoss: v.pointsLoss!,
       },
     });
+  }
+
+  private matchesForm(value: TournamentFormValue): boolean {
+    const raw: Record<string, unknown> = this.form.getRawValue();
+    const expected: Record<string, unknown> = { name: value.name, date: value.date, ...value.config };
+    return Object.keys(raw).every((key) => (raw[key] ?? null) === (expected[key] ?? null));
   }
 
   private numberControl(field: NumberFieldSpec) {

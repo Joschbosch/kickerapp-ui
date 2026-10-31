@@ -4,7 +4,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { Player, Round, Tournament } from '../../api/models';
+import { LIVE_DEBOUNCE_MS } from '../../core/events/live-reload';
 import { fieldByLabel } from '../../testing/dom';
+import { controlledLiveUpdates } from '../../testing/live';
 import { ANNA, BEN, CAN_DECIDE, CLARA, DAVID, match, participant, round, tournament } from '../../testing/fixtures';
 import { AdminTournamentPage } from './admin-tournament-page';
 
@@ -14,11 +16,13 @@ const PLAYERS = 'http://localhost:8080/api/players';
 describe('AdminTournamentPage', () => {
   let fixture: ComponentFixture<AdminTournamentPage>;
   let http: HttpTestingController;
+  let live: ReturnType<typeof controlledLiveUpdates>;
 
   beforeEach(async () => {
+    live = controlledLiveUpdates();
     await TestBed.configureTestingModule({
       imports: [AdminTournamentPage],
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting(), live.provider],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(AdminTournamentPage);
@@ -262,6 +266,33 @@ describe('AdminTournamentPage', () => {
 
     await load(tournament({ participants: [participant(DAVID)] }));
     expect(document.body.textContent).toContain('Zum Start braucht es mindestens 4 Spieler.');
+  });
+
+  it('verbindet sich für das Turnier und lädt bei einem Live-Update neu', async () => {
+    await load(tournament({ participants: [participant(ANNA)] }));
+    expect(live.watched).toEqual(['t1']);
+    live.messages.next({ kind: 'status', status: 'live' });
+    await fixture.whenStable();
+    expect(text()).toContain('Live');
+    expect(text()).toContain('1 Spieler');
+
+    live.messages.next({ kind: 'change', resync: false });
+    await new Promise((resolve) => setTimeout(resolve, LIVE_DEBOUNCE_MS + 50));
+
+    await load(tournament({ participants: [participant(ANNA), participant(BEN)] }));
+    expect(text()).toContain('2 Spieler');
+  });
+
+  it('behält ungespeicherte Eingaben in den Einstellungen, wenn ein Live-Update neu lädt', async () => {
+    await load(tournament());
+    await openTab('Einstellungen');
+    await type('Name', 'Mein Entwurf');
+
+    live.messages.next({ kind: 'change', resync: false });
+    await new Promise((resolve) => setTimeout(resolve, LIVE_DEBOUNCE_MS + 50));
+    await load(tournament({ participants: [participant(ANNA)] }));
+
+    expect(fieldByLabel(element(), 'Name').value).toBe('Mein Entwurf');
   });
 
   it('bietet bei einem Ladefehler an, es erneut zu versuchen', async () => {

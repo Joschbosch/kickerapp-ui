@@ -12,7 +12,9 @@ import { Observable, firstValueFrom, forkJoin, map, of, switchMap } from 'rxjs';
 import { KickerApi } from '../../api/kicker-api';
 import { Match, ParticipantStatus, ResultRequest } from '../../api/models';
 import { AuthService } from '../../core/auth/auth.service';
+import { liveReload } from '../../core/events/live-reload';
 import { PARTICIPANT_STATUS_LABEL, TOURNAMENT_STATUS_LABEL } from '../../shared/labels';
+import { LiveBadge } from '../../shared/live-badge';
 import { errorMessage } from '../../shared/problem';
 import { MatchCard } from './match-card';
 import { RegistrationAction, RegistrationCard } from './registration-card';
@@ -30,6 +32,7 @@ import { RegistrationAction, RegistrationCard } from './registration-card';
     MatIconModule,
     MatProgressBarModule,
     MatTableModule,
+    LiveBadge,
     MatchCard,
     RegistrationCard,
   ],
@@ -55,6 +58,14 @@ export class TournamentDetailPage {
   protected readonly data = rxResource({
     params: () => this.id(),
     stream: ({ params: id }) => this.load(id),
+  });
+
+  /** Live-Updates laden den Stand bei jeder Änderung neu, ohne Verbindung fragt die Seite in Abständen nach. */
+  protected readonly live = liveReload({
+    id: this.id,
+    reload: () => this.data.reload(),
+    busy: () => this.data.isLoading(),
+    fallbackMs: 30_000,
   });
 
   /** Der Eintrag des Spielers in der Teilnehmerliste, `undefined` wenn er nicht angemeldet ist. */

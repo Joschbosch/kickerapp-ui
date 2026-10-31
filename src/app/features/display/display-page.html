@@ -18,6 +18,7 @@
       @if (data.error()) {
         <span class="stale" role="alert">Verbindung gestört.</span>
       }
+      <app-live-badge [status]="live()" />
       Stand {{ view.at | date: 'HH:mm:ss' }}
     </p>
   </header>

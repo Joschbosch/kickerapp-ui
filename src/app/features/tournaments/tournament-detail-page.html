@@ -4,6 +4,7 @@
     Alle Turniere
   </a>
   <span class="tools">
+    <app-live-badge [status]="live()" />
     @if (isAdmin()) {
       <a mat-button [routerLink]="['/admin/turniere', id()]">
         <mat-icon aria-hidden="true">settings</mat-icon>
@@ -16,7 +17,7 @@
   </span>
 </div>
 
-@if (data.isLoading() || busy()) {
+@if (data.status() === 'loading' || busy()) {
   <mat-progress-bar mode="indeterminate" aria-label="Wird geladen" />
 }
 

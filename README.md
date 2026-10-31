@@ -4,15 +4,19 @@ Angular-Oberfläche für das [Kickertool](https://github.com/Joschbosch/kickerap
 responsive App, installierbar als PWA: Handy für Spieler, Desktop-Web für Admin und Spieler.
 
 Stand: Anmeldung, Turnierliste und die Spieler-Ansicht eines Turniers (zum Turnier anmelden, pausieren, ausscheiden,
-mein Spiel mit Tisch und Teams, Ergebnis eintragen, bestätigen oder ablehnen, Rangliste). Die Seite lädt nach jeder
-Aktion neu und über die Schaltfläche „Aktualisieren“, automatische Aktualisierung (Live-Updates) fehlt noch.
+mein Spiel mit Tisch und Teams, Ergebnis eintragen, bestätigen oder ablehnen, Rangliste).
+
+Live-Updates: Spieler-Seite, Admin-Seite und Anzeige lösen sich bei jeder Änderung des Turniers von selbst neu (Server-Sent
+Events mit Ticket, `core/events/`). Ein Abzeichen zeigt „Live“, „Verbinde …“ oder „Offline“. Ohne Verbindung fragt die Seite in
+Abständen nach (30 Sekunden, die Anzeige 15 Sekunden), die Schaltfläche „Aktualisieren“ bleibt.
 
 Admin-Ansicht (nur mit Admin-Rolle, `/admin`): Turnier anlegen, Name, Datum und Konfiguration ändern (auch im laufenden
 Turnier), starten, Runden auslosen, beenden (mit Rückfrage), Spieler anmelden, abmelden, pausieren oder ausscheiden lassen,
 Ergebnisse festlegen und korrigieren (Streitfälle sind hervorgehoben). Dazu die Anzeige `/anzeige/:id` für weitere
-Bildschirme: Rangliste und Tische in großer Schrift ohne Menü, fragt alle 15 Sekunden neu ab.
+Bildschirme: Rangliste und Tische in großer Schrift ohne Menü.
 
-Als Nächstes: Live-Updates (ersetzen die Abfrage alle 15 Sekunden), Token-Erneuerung, OIDC-Anmeldung.
+Als Nächstes: OIDC-Anmeldung mit Token-Erneuerung (der simulierte Login stellt Tokens für 8 Stunden aus und kennt keine
+Erneuerung, danach geht es zur Anmeldung).
 
 ## Schnellstart
 

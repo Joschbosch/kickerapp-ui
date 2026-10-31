@@ -5,6 +5,8 @@ import { provideRouter } from '@angular/router';
 
 import { RankingEntry, Tournament } from '../../api/models';
 import { ANNA, BEN, CLARA, DAVID, match, participant, rankingEntry, round, tournament } from '../../testing/fixtures';
+import { LIVE_DEBOUNCE_MS } from '../../core/events/live-reload';
+import { controlledLiveUpdates } from '../../testing/live';
 import { DisplayPage, REFRESH_MS } from './display-page';
 
 const BASE = 'http://localhost:8080/api/tournaments/t1';
@@ -12,12 +14,14 @@ const BASE = 'http://localhost:8080/api/tournaments/t1';
 describe('DisplayPage', () => {
   let fixture: ComponentFixture<DisplayPage>;
   let http: HttpTestingController;
+  let live: ReturnType<typeof controlledLiveUpdates>;
 
   beforeEach(async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    live = controlledLiveUpdates();
     await TestBed.configureTestingModule({
       imports: [DisplayPage],
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting(), live.provider],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(DisplayPage);
@@ -165,6 +169,46 @@ describe('DisplayPage', () => {
 
     expect(text()).toContain('Das Turnier konnte nicht geladen werden.');
     expect(text()).toContain('Zur Turnierliste');
+  });
+
+  it('lädt bei einem Live-Update sofort neu', async () => {
+    await load(running({ currentRound: round(1, [match()]) }), [rankingEntry(1, ANNA, 0)]);
+    live.messages.next({ kind: 'status', status: 'live' });
+    await fixture.whenStable();
+    expect(text()).toContain('Live');
+
+    live.messages.next({ kind: 'change', resync: false });
+    await new Promise((resolve) => setTimeout(resolve, LIVE_DEBOUNCE_MS + 50));
+    fixture.detectChanges();
+    await Promise.resolve();
+
+    await load(running({ currentRound: round(1, [match()]) }), [rankingEntry(1, ANNA, 3)]);
+    expect(element().querySelector('tbody tr .strong')!.textContent).toContain('3');
+  });
+
+  it('fragt bei stehender Live-Verbindung nicht in Abständen nach', async () => {
+    await load(running({ currentRound: round(1, [match()]) }));
+    live.messages.next({ kind: 'status', status: 'live' });
+    await fixture.whenStable();
+
+    vi.advanceTimersByTime(REFRESH_MS * 4);
+    fixture.detectChanges();
+    await Promise.resolve();
+
+    http.expectNone(() => true);
+  });
+
+  it('fragt wieder in Abständen nach und zeigt „Offline“, wenn die Live-Verbindung abreißt', async () => {
+    await load(running({ currentRound: round(1, [match()]) }));
+    live.messages.next({ kind: 'status', status: 'live' });
+    await fixture.whenStable();
+    live.messages.next({ kind: 'status', status: 'offline' });
+    await fixture.whenStable();
+    expect(text()).toContain('Offline');
+
+    await nextRefresh();
+
+    await load(running({ currentRound: round(1, [match()]) }));
   });
 
   it('hört nach dem Schließen auf, nachzufragen', async () => {

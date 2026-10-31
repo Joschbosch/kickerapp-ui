@@ -11,7 +11,9 @@ import { Observable, concat, firstValueFrom, forkJoin, toArray } from 'rxjs';
 
 import { KickerApi } from '../../api/kicker-api';
 import { ConfigRequest, Match, PlanTournamentRequest, Player, ResultRequest, TournamentConfig } from '../../api/models';
+import { liveReload } from '../../core/events/live-reload';
 import { TOURNAMENT_STATUS_LABEL } from '../../shared/labels';
+import { LiveBadge } from '../../shared/live-badge';
 import { errorMessage } from '../../shared/problem';
 import { AdminMatchCard } from './admin-match-card';
 import { ParticipantAction, ParticipantsPanel } from './participants-panel';
@@ -34,6 +36,7 @@ const NEXT_ROUND_BLOCKED = 'Erst möglich, wenn alle Ergebnisse der aktuellen Ru
     MatProgressBarModule,
     MatTabsModule,
     AdminMatchCard,
+    LiveBadge,
     ParticipantsPanel,
     TournamentForm,
   ],
@@ -57,6 +60,14 @@ export class AdminTournamentPage {
     params: () => this.id(),
     stream: ({ params: id }) =>
       forkJoin({ tournament: this.api.tournament(id), rounds: this.api.rounds(id), players: this.api.players() }),
+  });
+
+  /** Live-Updates laden den Stand bei jeder Änderung neu, ohne Verbindung fragt die Seite in Abständen nach. */
+  protected readonly live = liveReload({
+    id: this.id,
+    reload: () => this.data.reload(),
+    busy: () => this.data.isLoading(),
+    fallbackMs: 30_000,
   });
 
   /** Name, Datum und Konfiguration für das Formular. */

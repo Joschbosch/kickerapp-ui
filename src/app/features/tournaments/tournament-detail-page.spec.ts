@@ -6,7 +6,9 @@ import { provideRouter } from '@angular/router';
 
 import { Match, RankingEntry, Tournament } from '../../api/models';
 import { AuthService } from '../../core/auth/auth.service';
-import { ANNA, BEN, match, participant, tournament } from '../../testing/fixtures';
+import { ANNA, BEN, CLARA, match, participant, tournament } from '../../testing/fixtures';
+import { controlledLiveUpdates } from '../../testing/live';
+import { LIVE_DEBOUNCE_MS } from '../../core/events/live-reload';
 import { TournamentDetailPage } from './tournament-detail-page';
 
 const BASE = 'http://localhost:8080/api/tournaments/t1';
@@ -30,11 +32,14 @@ function entry(rank: number, player: typeof ANNA, points: number): RankingEntry 
 describe('TournamentDetailPage', () => {
   let fixture: ComponentFixture<TournamentDetailPage>;
   let http: HttpTestingController;
+  let live: ReturnType<typeof controlledLiveUpdates>;
 
   beforeEach(async () => {
+    live = controlledLiveUpdates();
     await TestBed.configureTestingModule({
       imports: [TournamentDetailPage],
       providers: [
+        live.provider,
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
@@ -161,6 +166,31 @@ describe('TournamentDetailPage', () => {
       [match({ status: 'RESULT_ENTERED' })],
     );
     expect(text()).toContain('Ergebnis eingetragen');
+  });
+
+  it('verbindet sich für das Turnier der Seite und zeigt, ob die Live-Verbindung steht', async () => {
+    await load(tournament());
+    expect(live.watched).toEqual(['t1']);
+    expect(text()).toContain('Verbinde');
+
+    live.messages.next({ kind: 'status', status: 'live' });
+    await fixture.whenStable();
+    expect(text()).toContain('Live');
+
+    live.messages.next({ kind: 'status', status: 'offline' });
+    await fixture.whenStable();
+    expect(text()).toContain('Offline');
+  });
+
+  it('lädt bei einem Live-Update neu, ohne dass jemand klicken muss', async () => {
+    await load(tournament({ participants: [participant(BEN)] }), [entry(1, BEN, 3)]);
+    expect(text()).not.toContain('Clara Beispiel');
+
+    live.messages.next({ kind: 'change', resync: false });
+    await new Promise((resolve) => setTimeout(resolve, LIVE_DEBOUNCE_MS + 50));
+
+    await load(tournament({ participants: [participant(BEN)] }), [entry(1, BEN, 3), entry(2, CLARA, 0)]);
+    expect(text()).toContain('Clara Beispiel');
   });
 
   it('zeigt die Meldung des Backends, wenn eine Aktion abgelehnt wird', async () => {
